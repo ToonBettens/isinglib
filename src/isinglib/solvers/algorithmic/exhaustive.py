@@ -3,12 +3,11 @@ from __future__ import annotations
 import time
 from collections.abc import Iterator
 
-import numpy as np
-
 from isinglib.core import evaluate
 from isinglib.core.problem import Problem
 from isinglib.core.solution import Solution
 from isinglib.core.solver import Solver
+from isinglib.solvers.utils.states import constant_spins
 
 __all__ = ("ExhaustiveSolver",)
 
@@ -44,7 +43,7 @@ class ExhaustiveSolver(Solver):
         j, h, c, n = problem.j, problem.h, problem.c, problem.n
         assert h is not None  # always set by Problem.__post_init__
 
-        s = np.full(n, -1.0, dtype=problem.dtype)
+        s = constant_spins(problem, -1.0)
         h_eff = evaluate.effective_field(j, h, s)
         curr = evaluate.energy(j, h, c, s, h_eff=h_eff)
 

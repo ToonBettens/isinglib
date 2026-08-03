@@ -8,6 +8,7 @@ from isinglib.core import evaluate
 from isinglib.core.problem import Problem
 from isinglib.core.solution import Solution
 from isinglib.core.solver import Solver
+from isinglib.solvers.utils.states import random_spins
 
 __all__ = ("TabuSearchSolver",)
 
@@ -52,7 +53,7 @@ class TabuSearchSolver(Solver):
         j, h, c, n = problem.j, problem.h, problem.c, problem.n
         assert h is not None  # always set by Problem.__post_init__
 
-        s = rng.choice(np.array([-1.0, 1.0], dtype=problem.dtype), size=n)
+        s = random_spins(problem, rng=rng)
         h_eff = evaluate.effective_field(j, h, s)
         curr_energy = evaluate.energy(j, h, c, s, h_eff=h_eff)
 

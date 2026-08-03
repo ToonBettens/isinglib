@@ -5,6 +5,7 @@ from collections.abc import Callable
 import numpy as np
 import numpy.typing as npt
 
+from isinglib.utils.defaults import DEFAULT_FLOAT_DTYPE
 from isinglib.utils.dtypes import FloatArray, ScalarLike, is_scalar_like
 
 __all__ = ("Topology",)
@@ -125,13 +126,13 @@ class Topology:
                 number of edges and returns one weight per edge in ``(src, dst)`` order.
 
         Returns:
-            Symmetric (n, n) float64 array with zero diagonal.
+            Symmetric (n, n) array of dtype ``DEFAULT_FLOAT_DTYPE`` with zero diagonal.
         """
         s, d = self.edges()
         if is_scalar_like(filler):
-            values = np.full(self.num_edges, filler, dtype=np.float64)
+            values = np.full(self.num_edges, filler, dtype=DEFAULT_FLOAT_DTYPE)
         elif callable(filler):
-            values = np.asarray(filler(self.num_edges), dtype=np.float64)
+            values = np.asarray(filler(self.num_edges), dtype=DEFAULT_FLOAT_DTYPE)
             if values.shape != (self.num_edges,):
                 raise ValueError(
                     f"filler returned shape {values.shape}; expected ({self.num_edges},)."
@@ -139,7 +140,7 @@ class Topology:
         else:
             raise TypeError("filler must be a scalar or a callable(n_edges) -> array.")
 
-        mat = np.zeros((self.n, self.n), dtype=np.float64)
+        mat = np.zeros((self.n, self.n), dtype=DEFAULT_FLOAT_DTYPE)
         if self.num_edges:
             mat[s, d] = values
             mat[d, s] = values

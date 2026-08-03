@@ -8,6 +8,7 @@ from isinglib.core import evaluate
 from isinglib.core.problem import Problem
 from isinglib.core.solution import Solution
 from isinglib.core.solver import Solver
+from isinglib.solvers.utils.states import random_spins
 
 __all__ = ("GreedySolver",)
 
@@ -47,7 +48,7 @@ class GreedySolver(Solver):
         total_flips = 0
 
         for _ in range(self.n_restarts):
-            s = rng.choice(np.array([-1.0, 1.0], dtype=problem.dtype), size=n)
+            s = random_spins(problem, rng=rng)
             h_eff = evaluate.effective_field(j, h, s)
 
             while True:
