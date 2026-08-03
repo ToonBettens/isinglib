@@ -1,0 +1,18 @@
+private
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.python-version
+.pytest_cache/
+.ruff_cache/
+.cache/
+
+# Environments
+.venv/
+venv/
+
+# Build
+dist/
+build/
