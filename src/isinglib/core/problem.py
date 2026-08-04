@@ -29,7 +29,7 @@ __all__ = ("Problem",)
 
 @dataclass(frozen=True, eq=False)
 class Problem:
-    """An Ising problem instance: ``E(s) = -0.5 sᵀ j s - hᵀ s + c``.
+    """An Ising problem instance: `E(s) = -0.5 sᵀ j s - hᵀ s + c`.
 
     Attributes:
         j: Symmetric (n, n) coupling matrix with zero diagonal.
@@ -73,16 +73,16 @@ class Problem:
 
     @property
     def num_interactions(self) -> int:
-        """Number of nonzero couplings (upper-triangle entries of ``j``)."""
+        """Number of nonzero couplings (upper-triangle entries of `j`)."""
         return int(np.count_nonzero(np.triu(self.j, k=1)))
 
     @cached_property
     def id(self) -> str:
-        """16-character hash of ``(j, h, c)``, ignoring ``dtype`` and ``meta``.
+        """16-character hash of `(j, h, c)`, ignoring `dtype` and `meta`.
 
         A stable, hashable, serializable identity for this problem's content.
         Normalized to float64 before hashing, so equal-valued problems of
-        different ``dtype`` get equal ids too.
+        different `dtype` get equal ids too.
         """
         h = self.h
         assert h is not None  # always set by __post_init__
@@ -97,7 +97,7 @@ class Problem:
     # ------------------------------------------------------------------
 
     def validate(self) -> None:
-        """Raise if ``j`` or ``h`` violate the Ising problem invariants."""
+        """Raise if `j` or `h` violate the Ising problem invariants."""
         j, h = self.j, self.h
         assert h is not None  # always set by __post_init__
         if j.ndim != 2 or j.shape[0] != j.shape[1]:
@@ -110,12 +110,12 @@ class Problem:
             raise ValueError(f"h must be 1-D with length {j.shape[0]}; got shape {h.shape}.")
 
     def astype(self, dtype: np.dtype) -> Problem:
-        """Return a copy cast to ``dtype``. Returns ``self`` if already that dtype."""
+        """Return a copy cast to `dtype`. Returns `self` if already that dtype."""
         dtype = ensure_float_dtype(dtype)
         return self if dtype == self.dtype else self.replace(dtype=dtype)
 
     def energy(self, s: npt.ArrayLike) -> float:
-        """Return ``E(s) = -0.5 sᵀ j s - hᵀ s + c`` for spin vector ``s``."""
+        """Return `E(s) = -0.5 sᵀ j s - hᵀ s + c` for spin vector `s`."""
         sv = np.asarray(s, dtype=self.dtype)
         h = self.h
         assert h is not None  # always set by __post_init__
@@ -133,9 +133,9 @@ class Problem:
     __hash__ = None
 
     def __eq__(self, other: object) -> bool:
-        """Compare by content only: ``j``, ``h``, ``c``.
+        """Compare by content only: `j`, `h`, `c`.
 
-        ``dtype`` and ``meta`` are excluded: two problems built from the same
+        `dtype` and `meta` are excluded: two problems built from the same
         numbers are the same problem regardless of what's recorded about them.
         """
         if not isinstance(other, Problem):
@@ -167,13 +167,13 @@ class Problem:
         meta: dict | None = None,
         dtype: np.dtype | None = None,
     ) -> Problem:
-        """Construct from a ``Topology`` and weight specifications.
+        """Construct from a `Topology` and weight specifications.
 
         Args:
             topology: Graph structure defining which spins interact.
-            coupling: Edge weights for ``j``: scalar or ``callable(n_edges) -> array``.
-            bias: Node biases for ``h``: scalar or ``callable(n_nodes) -> array``.
-            meta: Provenance metadata stored in ``Problem.meta``.
+            coupling: Edge weights for `j`: scalar or `callable(n_edges) -> array`.
+            bias: Node biases for `h`: scalar or `callable(n_nodes) -> array`.
+            meta: Provenance metadata stored in `Problem.meta`.
             dtype: Target float dtype (default float64).
         """
         dtype = ensure_float_dtype(dtype)
@@ -201,14 +201,14 @@ class Problem:
         meta: dict | None = None,
         dtype: np.dtype | None = None,
     ) -> Problem:
-        """Construct from QUBO form ``E(x) = xᵀQx + offset``, with ``x ∈ {0, 1}ⁿ``.
+        """Construct from QUBO form `E(x) = xᵀQx + offset`, with `x ∈ {0, 1}ⁿ`.
 
-        Only the upper triangle of ``q`` (including the diagonal) is used.
+        Only the upper triangle of `q` (including the diagonal) is used.
 
         Args:
             q: (n, n) QUBO matrix.
             offset: Additive constant in the QUBO objective.
-            meta: Provenance metadata stored in ``Problem.meta``.
+            meta: Provenance metadata stored in `Problem.meta`.
             dtype: Target float dtype (default float64).
         """
         dtype = ensure_float_dtype(dtype)
@@ -227,15 +227,15 @@ class Problem:
         return cls(j=j, h=h, c=c, dtype=dtype, meta=meta or {})
 
     def to_qubo(self) -> tuple[FloatArray, float]:
-        """Convert to QUBO form ``E(x) = xᵀQx + offset``, with ``x ∈ {0, 1}ⁿ``.
+        """Convert to QUBO form `E(x) = xᵀQx + offset`, with `x ∈ {0, 1}ⁿ`.
 
-        The substitution ``s_i = 2x_i - 1`` maps every Ising spin to a binary
-        variable. The returned ``Q`` is upper triangular.
+        The substitution `s_i = 2x_i - 1` maps every Ising spin to a binary
+        variable. The returned `Q` is upper triangular.
 
         Returns:
             q: Upper-triangular (n, n) QUBO matrix.
-            offset: Additive constant such that ``E_ising(s) = E_qubo(x) + offset``
-                when ``s_i = 2x_i - 1``.
+            offset: Additive constant such that `E_ising(s) = E_qubo(x) + offset`
+                when `s_i = 2x_i - 1`.
         """
         n = self.n
         h = self.h

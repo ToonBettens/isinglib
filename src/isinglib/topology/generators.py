@@ -151,7 +151,7 @@ def erdos_renyi(
     *,
     rng: np.random.Generator | None = None,
 ) -> Topology:
-    """Erdős-Rényi G(n, p): each edge included independently with probability ``p``.
+    """Erdős-Rényi G(n, p): each edge included independently with probability `p`.
 
     Args:
         n: Number of nodes.
@@ -176,8 +176,8 @@ def barabasi_albert(
 ) -> Topology:
     """Barabási-Albert preferential-attachment graph.
 
-    Grows from an initial clique of ``m+1`` nodes; each new node attaches
-    to ``m`` existing nodes with probability proportional to their degree.
+    Grows from an initial clique of `m+1` nodes; each new node attaches
+    to `m` existing nodes with probability proportional to their degree.
 
     Args:
         n: Total number of nodes.

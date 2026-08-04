@@ -100,11 +100,11 @@ class Topology:
     # ------------------------------------------------------------------
 
     def edges(self) -> tuple[npt.NDArray[np.int32], npt.NDArray[np.int32]]:
-        """Return ``(src, dst)`` with ``src[k] < dst[k]``."""
+        """Return `(src, dst)` with `src[k] < dst[k]`."""
         return self.src, self.dst
 
     def degrees(self) -> npt.NDArray[np.int32]:
-        """Return the degree of each node as an int32 array of length ``n``."""
+        """Return the degree of each node as an int32 array of length `n`."""
         deg = np.zeros(self.n, dtype=_NODE_DTYPE)
         if self.num_edges:
             np.add.at(deg, self.src, 1)
@@ -112,7 +112,7 @@ class Topology:
         return deg
 
     def neighbors(self, u: int) -> npt.NDArray[np.int32]:
-        """Return the sorted neighbor indices of node ``u``."""
+        """Return the sorted neighbor indices of node `u`."""
         if not (0 <= u < self.n):
             raise IndexError(f"Node {u} out of range [0, {self.n}).")
         indptr, indices = self._csr()
@@ -123,10 +123,10 @@ class Topology:
 
         Args:
             filler: A scalar (uniform weight) or a callable that accepts the
-                number of edges and returns one weight per edge in ``(src, dst)`` order.
+                number of edges and returns one weight per edge in `(src, dst)` order.
 
         Returns:
-            Symmetric (n, n) array of dtype ``DEFAULT_FLOAT_DTYPE`` with zero diagonal.
+            Symmetric (n, n) array of dtype `DEFAULT_FLOAT_DTYPE` with zero diagonal.
         """
         s, d = self.edges()
         if is_scalar_like(filler):

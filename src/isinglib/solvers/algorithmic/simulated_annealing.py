@@ -17,18 +17,18 @@ class SimulatedAnnealingSolver(Solver):
     """Simulated annealing with a monotonically decreasing temperature schedule.
 
     At each step a random spin is proposed; the flip is accepted if it lowers
-    energy, or with Boltzmann probability ``exp(-ΔE / T)`` otherwise. The best
+    energy, or with Boltzmann probability `exp(-ΔE / T)` otherwise. The best
     state seen across all steps is returned, not the final state.
 
     Args:
         n_steps: Total number of spin-flip proposals.
         T_start: Initial temperature.
         T_end: Final temperature (must be > 0).
-        schedule: ``"geometric"`` (exponential decay) or ``"linear"``.
+        schedule: `"geometric"` (exponential decay) or `"linear"`.
         rng: Random generator or seed for reproducibility.
         record_trajectory: If True, record the spin configuration after every
-            step into ``Solution.trajectory`` (shape ``(n_steps, n)``). Off by
-            default — costs ``O(n_steps * n)`` memory, not worth paying for
+            step into `Solution.trajectory` (shape `(n_steps, n)`). Off by
+            default — costs `O(n_steps * n)` memory, not worth paying for
             routine batch runs, only for one-off convergence diagnostics.
     """
 

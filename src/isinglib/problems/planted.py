@@ -22,32 +22,32 @@ def planted_solution(
 ) -> Problem:
     """Build a Problem with a known ground state, planted by gauge transform.
 
-    ``coupling`` and ``bias`` are *magnitude* specifications and must be
-    non-negative (e.g. ``lambda n: rng.uniform(0.1, 1.0, n)``); the sign of
+    `coupling` and `bias` are *magnitude* specifications and must be
+    non-negative (e.g. `lambda n: rng.uniform(0.1, 1.0, n)`); the sign of
     each coupling and bias term is chosen so that it is individually
-    maximized in the energy's favor at ``planted``. Since every term is
+    maximized in the energy's favor at `planted`. Since every term is
     simultaneously maximized by the same configuration, their sum is too —
-    making ``planted`` a global ground state by construction. This is just a
-    ferromagnet written in the gauge where "all aligned" means ``planted``
+    making `planted` a global ground state by construction. This is just a
+    ferromagnet written in the gauge where "all aligned" means `planted`
     instead of all-ones.
 
-    ``planted`` is guaranteed to be *a* ground state, but not necessarily the
+    `planted` is guaranteed to be *a* ground state, but not necessarily the
     unique one: a node with zero total incident coupling and zero bias can
-    have either spin value at no energy cost, and an all-zero ``bias`` leaves
-    the usual ``s -> -s`` global flip degeneracy intact.
+    have either spin value at no energy cost, and an all-zero `bias` leaves
+    the usual `s -> -s` global flip degeneracy intact.
 
     Args:
         topology: Graph structure defining which spins interact.
         coupling: Edge coupling magnitudes: scalar or callable(n_edges) -> array. Must be non-negative.
         bias: Node bias magnitudes: scalar or callable(n_nodes) -> array. Must be non-negative.
         planted: The spin configuration to plant, valued in {-1, +1}. Drawn uniformly at random if not given.
-        rng: Random generator or seed, used only when ``planted`` is None.
+        rng: Random generator or seed, used only when `planted` is None.
         meta: Provenance metadata, merged with the planting info this function always records.
         dtype: Target float dtype (default float64).
 
     Returns:
-        A Problem whose ground state is ``planted``, with
-        ``meta["planted_spins"]`` and ``meta["ground_truth_energy"]`` set.
+        A Problem whose ground state is `planted`, with
+        `meta["planted_spins"]` and `meta["ground_truth_energy"]` set.
     """
     dtype = ensure_float_dtype(dtype)
 

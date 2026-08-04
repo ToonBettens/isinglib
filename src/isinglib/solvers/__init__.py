@@ -1,1 +1,1 @@
-"""Solver implementations: ``algorithmic`` (SA, SB, exhaustive) and ``ode``."""
+"""Solver implementations: `algorithmic` (SA, SB, exhaustive) and `ode`."""

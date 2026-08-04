@@ -9,10 +9,10 @@ from isinglib.core.problem import Problem
 
 
 def read(path: str | Path, *, meta: dict | None = None, dtype: np.dtype | None = None) -> Problem:
-    """Load a Problem from a JSON file written by ``write``.
+    """Load a Problem from a JSON file written by `write`.
 
     Args:
-        path: Path to the ``.json`` file.
+        path: Path to the `.json` file.
         meta: If provided, replaces the metadata stored in the file.
         dtype: If provided, overrides the dtype stored in the file.
     """
@@ -30,8 +30,8 @@ def read(path: str | Path, *, meta: dict | None = None, dtype: np.dtype | None =
 def write(problem: Problem, path: str | Path, *, indent: int = 2) -> None:
     """Serialise a Problem to a JSON file.
 
-    All numerical fields are stored as nested lists; ``dtype`` and ``meta``
-    are preserved. The file can be round-tripped through ``read``.
+    All numerical fields are stored as nested lists; `dtype` and `meta`
+    are preserved. The file can be round-tripped through `read`.
 
     Args:
         problem: The Problem to serialise.

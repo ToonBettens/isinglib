@@ -17,7 +17,7 @@ class TabuSearchSolver(Solver):
     """Tabu search: best-improvement local search with a recency-based tabu list.
 
     At each step the best non-tabu flip is chosen. A flipped spin is forbidden
-    for ``tabu_tenure`` subsequent steps. The aspiration criterion overrides the
+    for `tabu_tenure` subsequent steps. The aspiration criterion overrides the
     tabu status when a flip would yield a new global best.
 
     Args:
@@ -25,8 +25,8 @@ class TabuSearchSolver(Solver):
         tabu_tenure: Number of steps a spin remains forbidden after being flipped.
         rng: Random generator or seed for the initial state.
         record_trajectory: If True, record the spin configuration after every
-            step into ``Solution.trajectory``. Off by default — see
-            ``SimulatedAnnealingSolver`` for the same tradeoff.
+            step into `Solution.trajectory`. Off by default — see
+            `SimulatedAnnealingSolver` for the same tradeoff.
     """
 
     def __init__(

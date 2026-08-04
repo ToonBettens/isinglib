@@ -13,7 +13,7 @@ def random_spins(
     p: float = 0.5,
     rng: np.random.Generator | int | None = None,
 ) -> np.ndarray:
-    """Draw a random spin configuration sized and typed for ``problem``.
+    """Draw a random spin configuration sized and typed for `problem`.
 
     Args:
         problem: Problem to size and type the state for.
@@ -25,7 +25,7 @@ def random_spins(
 
 
 def constant_spins(problem: Problem, value: float = 1.0) -> np.ndarray:
-    """Return a uniform spin configuration, sized and typed for ``problem``.
+    """Return a uniform spin configuration, sized and typed for `problem`.
 
     Args:
         problem: Problem to size and type the state for.

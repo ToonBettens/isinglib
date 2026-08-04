@@ -18,15 +18,15 @@ __all__ = (
 
 
 # Type aliases. These document intent at zero runtime cost.
-# Scalars in this library are plain Python ``float``.
-# Spin/continuous states are plain ``np.ndarray``.
+# Scalars in this library are plain Python `float`.
+# Spin/continuous states are plain `np.ndarray`.
 type FloatArray = npt.NDArray[np.floating]
 type FloatDType = np.dtype[np.floating]
 type ScalarLike = int | float | np.floating
 
 
 def is_scalar_like(x: Any) -> TypeIs[ScalarLike]:
-    """Return True if ``x`` is a real-number scalar (and not a bool)."""
+    """Return True if `x` is a real-number scalar (and not a bool)."""
     if isinstance(x, bool):
         return False
     if isinstance(x, (int, float, np.floating)):
@@ -41,11 +41,11 @@ def ensure_float_dtype(
     """Resolve a dtype candidate to a concrete floating dtype.
 
     Args:
-        dtype: Requested dtype, or None to use ``default``.
-        default: Fallback dtype when ``dtype`` is None.
+        dtype: Requested dtype, or None to use `default`.
+        default: Fallback dtype when `dtype` is None.
 
     Returns:
-        A floating ``np.dtype``.
+        A floating `np.dtype`.
 
     Raises:
         TypeError: If the resolved dtype is not a floating type.
@@ -67,11 +67,11 @@ def ensure_float_array(
     Args:
         arr: Input array-like.
         dtype: Target dtype, or None to use the default.
-        copy: If True, always return an array that doesn't alias ``arr``'s
-            memory — plain ``np.asarray`` returns ``arr`` itself unchanged
+        copy: If True, always return an array that doesn't alias `arr`'s
+            memory — plain `np.asarray` returns `arr` itself unchanged
             when it already has the resolved dtype. Trust boundaries that
             need to guarantee independence from caller-owned memory (e.g.
-            before freezing an array read-only) should pass ``copy=True``.
+            before freezing an array read-only) should pass `copy=True`.
     """
     resolved = ensure_float_dtype(dtype)
     try:
