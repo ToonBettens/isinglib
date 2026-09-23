@@ -25,7 +25,8 @@ class SimulatedAnnealingSolver(Solver):
         T_start: Initial temperature.
         T_end: Final temperature (must be > 0).
         schedule: `"geometric"` (exponential decay) or `"linear"`.
-        rng: Random generator or seed for reproducibility.
+        rng: Random generator or seed. Seeded once here, so repeated `solve`
+            calls consume fresh randomness instead of repeating one run.
         record_trajectory: If True, record the spin configuration after every
             step into `Solution.trajectory` (shape `(n_steps, n)`). Off by
             default — costs `O(n_steps * n)` memory, not worth paying for
@@ -51,7 +52,7 @@ class SimulatedAnnealingSolver(Solver):
         self.T_start = T_start
         self.T_end = T_end
         self.schedule = schedule
-        self.rng = rng
+        self._rng = np.random.default_rng(rng)
         self.record_trajectory = record_trajectory
 
     @property
@@ -60,7 +61,7 @@ class SimulatedAnnealingSolver(Solver):
 
     def solve(self, problem: Problem) -> Solution:
         t0 = time.perf_counter()
-        rng = np.random.default_rng(self.rng)
+        rng = self._rng
         j, h, c, n = problem.j, problem.h, problem.c, problem.n
         assert h is not None  # always set by Problem.__post_init__
 

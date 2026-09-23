@@ -22,7 +22,7 @@ class GreedySolver(Solver):
 
     Args:
         n_restarts: Number of random starting states to try.
-        rng: Random generator or seed for reproducibility.
+        rng: Random generator or seed for reproducability.
     """
 
     def __init__(
@@ -31,7 +31,7 @@ class GreedySolver(Solver):
         rng: np.random.Generator | int | None = None,
     ) -> None:
         self.n_restarts = n_restarts
-        self.rng = rng
+        self._rng = np.random.default_rng(rng)
 
     @property
     def name(self) -> str:
@@ -39,7 +39,7 @@ class GreedySolver(Solver):
 
     def solve(self, problem: Problem) -> Solution:
         t0 = time.perf_counter()
-        rng = np.random.default_rng(self.rng)
+        rng = self._rng
         j, h, c, n = problem.j, problem.h, problem.c, problem.n
         assert h is not None  # always set by Problem.__post_init__
 

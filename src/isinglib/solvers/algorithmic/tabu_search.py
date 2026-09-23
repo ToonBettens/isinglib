@@ -23,7 +23,9 @@ class TabuSearchSolver(Solver):
     Args:
         n_steps: Number of search iterations.
         tabu_tenure: Number of steps a spin remains forbidden after being flipped.
-        rng: Random generator or seed for the initial state.
+        rng: Random generator or seed for the initial state. Seeded once here,
+            so repeated `solve` calls consume fresh randomness instead of
+            repeating one run.
         record_trajectory: If True, record the spin configuration after every
             step into `Solution.trajectory`. Off by default — see
             `SimulatedAnnealingSolver` for the same tradeoff.
@@ -40,7 +42,7 @@ class TabuSearchSolver(Solver):
             raise ValueError("tabu_tenure must be at least 1.")
         self.n_steps = n_steps
         self.tabu_tenure = tabu_tenure
-        self.rng = rng
+        self._rng = np.random.default_rng(rng)
         self.record_trajectory = record_trajectory
 
     @property
@@ -49,7 +51,7 @@ class TabuSearchSolver(Solver):
 
     def solve(self, problem: Problem) -> Solution:
         t0 = time.perf_counter()
-        rng = np.random.default_rng(self.rng)
+        rng = self._rng
         j, h, c, n = problem.j, problem.h, problem.c, problem.n
         assert h is not None  # always set by Problem.__post_init__
 
