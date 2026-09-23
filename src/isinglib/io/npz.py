@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Literal
 
 import numpy as np
 
-from isinglib.core.problem import Problem
 from isinglib.io._sparse import choose_encoding, from_edges, to_edges
+from isinglib.problem import Problem
 
 
 def read(path: str | Path) -> Problem:
@@ -23,7 +22,6 @@ def read(path: str | Path) -> Problem:
         encoding = str(data["encoding"])
         dtype = np.dtype(str(data["dtype"]))
         c = float(data["c"])
-        meta = json.loads(str(data["meta"]))
 
         if encoding == "sparse":
             n = int(data["n"])
@@ -35,7 +33,7 @@ def read(path: str | Path) -> Problem:
         else:
             raise ValueError(f"Unknown npz encoding {encoding!r}.")
 
-    return Problem(j=j, h=h, c=c, dtype=dtype, meta=meta)
+    return Problem(j, h, c, dtype)
 
 
 def write(
@@ -54,8 +52,6 @@ def write(
             picks based on `j`'s actual density.
     """
     h = problem.h
-    assert h is not None  # always set by Problem.__post_init__
-    meta_json = json.dumps(dict(problem.meta))
 
     if encoding == "auto":
         encoding = choose_encoding(problem)
@@ -67,7 +63,6 @@ def write(
             encoding="sparse",
             dtype=str(problem.dtype),
             c=problem.c,
-            meta=meta_json,
             n=problem.n,
             src=src,
             dst=dst,
@@ -80,7 +75,6 @@ def write(
             encoding="dense",
             dtype=str(problem.dtype),
             c=problem.c,
-            meta=meta_json,
             j=problem.j,
             h=h,
         )

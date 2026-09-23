@@ -73,3 +73,9 @@ root = ["src"]
 
 [tool.ty.src]
 include = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]  # without this, pytest walks the whole tree and collects
+                       # stray test_*.py under private/ and any build artefacts.
+addopts = "--strict-markers --strict-config"  # typo'd marker or config key is an
+                                              # error, not a silently ignored line.

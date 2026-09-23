@@ -7,6 +7,7 @@ Every solver must pass these checks on a small problem. Register new solvers in
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import pytest
@@ -47,7 +48,27 @@ def test_solver_contract(solver_and_exactness: tuple[Solver, bool], small_proble
     assert sol.energy == pytest.approx(small_problem.energy(sol.spins))
     assert sol.time_s >= 0.0
     assert sol.solver_name == solver.name
-    assert sol.problem_id == small_problem.id
+    assert sol.problem_id == small_problem.fingerprint
+
+
+STOCHASTIC_SOLVERS = [GreedySolver, SimulatedAnnealingSolver, TabuSearchSolver]
+
+
+@pytest.mark.parametrize("solver_cls", STOCHASTIC_SOLVERS, ids=lambda c: c.__name__)
+def test_seeded_solve_is_deterministic(solver_cls: Any, small_problem: Problem) -> None:
+    """A seeded solver holds no run state: repeat calls must give the same answer."""
+    solver = solver_cls(rng=0)
+    first, second = solver.solve(small_problem), solver.solve(small_problem)
+    assert second.energy == first.energy
+    assert np.array_equal(second.spins, first.spins)
+
+
+@pytest.mark.parametrize("solver_cls", STOCHASTIC_SOLVERS, ids=lambda c: c.__name__)
+def test_same_seed_agrees_across_instances(solver_cls: Any, small_problem: Problem) -> None:
+    """Determinism comes from the seed, not from a particular instance."""
+    a = solver_cls(rng=0).solve(small_problem)
+    b = solver_cls(rng=0).solve(small_problem)
+    assert np.array_equal(a.spins, b.spins)
 
 
 def test_exact_solvers_find_ground_state(

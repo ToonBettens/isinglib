@@ -3,11 +3,11 @@ from __future__ import annotations
 import time
 from collections.abc import Iterator
 
-from isinglib.core import evaluate
-from isinglib.core.problem import Problem
-from isinglib.core.solution import Solution
-from isinglib.core.solver import Solver
-from isinglib.solvers.utils.states import constant_spins
+from isinglib import _evaluate
+from isinglib.problem import Problem
+from isinglib.solution import Solution
+from isinglib.solvers.base import Solver
+from isinglib.states import constant_spins
 
 __all__ = ("ExhaustiveSolver",)
 
@@ -43,16 +43,16 @@ class ExhaustiveSolver(Solver):
         j, h, c, n = problem.j, problem.h, problem.c, problem.n
         assert h is not None  # always set by Problem.__post_init__
 
-        s = constant_spins(problem, -1.0)
-        h_eff = evaluate.effective_field(j, h, s)
-        curr = evaluate.energy(j, h, c, s, h_eff=h_eff)
+        s = constant_spins(problem.n, -1.0, dtype=problem.dtype)
+        h_eff = _evaluate.effective_field(j, h, s)
+        curr = _evaluate.energy(j, h, c, s, h_eff=h_eff)
 
         best_energy = curr
         best_spins = s.copy()
 
         for k in _gray_flip_indices(n):
-            curr += evaluate.spin_flip_energy_update(s, h_eff, i=k)
-            h_eff = h_eff + evaluate.spin_flip_effective_field_update(j, s, k)
+            curr += _evaluate.spin_flip_energy_update(s, h_eff, i=k)
+            h_eff = h_eff + _evaluate.spin_flip_effective_field_update(j, s, k)
             s[k] = -s[k]
             if curr < best_energy:
                 best_energy = curr
@@ -63,6 +63,6 @@ class ExhaustiveSolver(Solver):
             energy=float(best_energy),
             time_s=time.perf_counter() - t0,
             solver_name=self.name,
-            problem_id=problem.id,
+            problem_id=problem.fingerprint,
             meta={"method": "gray-code", "evaluated": 1 << n},
         )

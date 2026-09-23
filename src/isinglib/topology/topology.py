@@ -1,17 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-
 import numpy as np
 import numpy.typing as npt
 
-from isinglib.utils.defaults import DEFAULT_FLOAT_DTYPE
-from isinglib.utils.dtypes import FloatArray, ScalarLike, is_scalar_like
+from isinglib.dtypes import DEFAULT_FLOAT_DTYPE, FloatArray
+from isinglib.topology.fillers import FillerLike, resolve
 
 __all__ = ("Topology",)
-
-
-type FillerLike = ScalarLike | Callable[[int], npt.ArrayLike]
 
 _NODE_DTYPE = np.int32
 
@@ -122,23 +117,13 @@ class Topology:
         """Build a dense (n, n) coupling matrix from a weight specification.
 
         Args:
-            filler: A scalar (uniform weight) or a callable that accepts the
-                number of edges and returns one weight per edge in `(src, dst)` order.
+            filler: A weight specification (see fillers.py).
 
         Returns:
             Symmetric (n, n) array of dtype `DEFAULT_FLOAT_DTYPE` with zero diagonal.
         """
         s, d = self.edges()
-        if is_scalar_like(filler):
-            values = np.full(self.num_edges, filler, dtype=DEFAULT_FLOAT_DTYPE)
-        elif callable(filler):
-            values = np.asarray(filler(self.num_edges), dtype=DEFAULT_FLOAT_DTYPE)
-            if values.shape != (self.num_edges,):
-                raise ValueError(
-                    f"filler returned shape {values.shape}; expected ({self.num_edges},)."
-                )
-        else:
-            raise TypeError("filler must be a scalar or a callable(n_edges) -> array.")
+        values = resolve(filler, self.num_edges)
 
         mat = np.zeros((self.n, self.n), dtype=DEFAULT_FLOAT_DTYPE)
         if self.num_edges:

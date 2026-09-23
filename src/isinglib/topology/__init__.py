@@ -1,19 +1,16 @@
-"""Pure graph structure: the Topology class and its generators.
-
-Decoupled from weights on purpose — see `Problem.from_topology` to attach
-coupling/bias and get a full `Problem`.
-"""
-
-from isinglib.topology.generators import (
-    barabasi_albert,
+from isinglib.topology import fillers
+from isinglib.topology.regular import (
     complete,
     cycle,
-    erdos_renyi,
     grid,
     king,
     path,
     ring,
     star,
+)
+from isinglib.topology.stochastic import (
+    barabasi_albert,
+    erdos_renyi,
     watts_strogatz,
 )
 from isinglib.topology.topology import Topology
@@ -24,6 +21,7 @@ __all__ = (
     "complete",
     "cycle",
     "erdos_renyi",
+    "fillers",
     "grid",
     "king",
     "path",

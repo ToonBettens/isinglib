@@ -1,5 +1,3 @@
-"""Hot-path energy/effective-field kernels shared by every algorithmic solver."""
-
 from __future__ import annotations
 
 from typing import overload
@@ -72,8 +70,8 @@ def spin_flip_energy_update(
         s: (n,) spin state, before any flip.
         h_eff: Effective field at `s` (from `effective_field`).
         i: If given, return the scalar ΔE for flipping only spin `i`.
-            Otherwise return the `(n,)` array of ΔE for flipping each spin
-            independently (holding all others fixed).
+           Otherwise return the `(n,)` array of ΔE for flipping each spin
+           independently (holding all others fixed).
     """
     if i is None:
         return 2.0 * s * h_eff

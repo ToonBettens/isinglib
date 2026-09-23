@@ -19,7 +19,7 @@ class Solution:
         energy: Energy of the final state.
         time_s: Wall-clock solve time in seconds.
         solver_name: Stable name of the solver that produced this solution.
-        problem_id: `Problem.id` of the originating problem, or None.
+        problem_id: `Problem.fingerprint` of the originating problem, or None.
         trajectory: (T, n) optional per-step/per-sample record of intermediate states.
             What the `T` axis represents and how samples were chosen is solver-specific.
         meta: Solver-specific extras (n_steps, schedule, seed, ...).

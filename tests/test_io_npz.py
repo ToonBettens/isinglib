@@ -5,23 +5,17 @@ import pytest
 
 from isinglib import Problem
 from isinglib.io import npz
-from isinglib.topology import complete, star
+from isinglib.topology import complete, fillers, star
 
 
 def _sparse_problem() -> Problem:
     t = star(30)  # 29 edges out of C(30, 2) = 435 possible -> well under 25%
-    rng = np.random.default_rng(0)
-    return Problem.from_topology(
-        t, coupling=lambda n: rng.uniform(0.1, 1.0, n), bias=0.5, meta={"name": "star-30"}
-    )
+    return Problem(t.fill(fillers.uniform(0.1, 1.0, rng=0)), 0.5 * np.ones(t.n))
 
 
 def _dense_problem() -> Problem:
     t = complete(10)
-    rng = np.random.default_rng(1)
-    return Problem.from_topology(
-        t, coupling=lambda n: rng.uniform(0.1, 1.0, n), bias=0.5, meta={"name": "complete-10"}
-    )
+    return Problem(t.fill(fillers.uniform(0.1, 1.0, rng=1)), 0.5 * np.ones(t.n))
 
 
 @pytest.mark.parametrize("encoding", ["sparse", "dense"])
@@ -32,7 +26,6 @@ def test_round_trip_explicit_encoding(tmp_path, encoding) -> None:
     loaded = npz.read(path)
     assert loaded == p
     assert loaded.dtype == p.dtype
-    assert dict(loaded.meta) == dict(p.meta)
 
 
 def test_auto_picks_sparse_for_sparse_graph(tmp_path) -> None:

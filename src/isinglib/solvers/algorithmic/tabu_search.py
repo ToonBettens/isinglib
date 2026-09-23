@@ -4,11 +4,11 @@ import time
 
 import numpy as np
 
-from isinglib.core import evaluate
-from isinglib.core.problem import Problem
-from isinglib.core.solution import Solution
-from isinglib.core.solver import Solver
-from isinglib.solvers.utils.states import random_spins
+from isinglib import _evaluate
+from isinglib.problem import Problem
+from isinglib.solution import Solution
+from isinglib.solvers.base import Solver
+from isinglib.states import random_spins
 
 __all__ = ("TabuSearchSolver",)
 
@@ -23,9 +23,9 @@ class TabuSearchSolver(Solver):
     Args:
         n_steps: Number of search iterations.
         tabu_tenure: Number of steps a spin remains forbidden after being flipped.
-        rng: Random generator or seed for the initial state. Seeded once here,
-            so repeated `solve` calls consume fresh randomness instead of
-            repeating one run.
+        rng: Random generator or seed for the initial state. An integer seed
+            makes `solve` deterministic; a `Generator` advances across calls,
+            and the default draws fresh entropy each call.
         record_trajectory: If True, record the spin configuration after every
             step into `Solution.trajectory`. Off by default — see
             `SimulatedAnnealingSolver` for the same tradeoff.
@@ -42,7 +42,7 @@ class TabuSearchSolver(Solver):
             raise ValueError("tabu_tenure must be at least 1.")
         self.n_steps = n_steps
         self.tabu_tenure = tabu_tenure
-        self._rng = np.random.default_rng(rng)
+        self.rng = rng
         self.record_trajectory = record_trajectory
 
     @property
@@ -51,13 +51,13 @@ class TabuSearchSolver(Solver):
 
     def solve(self, problem: Problem) -> Solution:
         t0 = time.perf_counter()
-        rng = self._rng
+        rng = np.random.default_rng(self.rng)
         j, h, c, n = problem.j, problem.h, problem.c, problem.n
         assert h is not None  # always set by Problem.__post_init__
 
-        s = random_spins(problem, rng=rng)
-        h_eff = evaluate.effective_field(j, h, s)
-        curr_energy = evaluate.energy(j, h, c, s, h_eff=h_eff)
+        s = random_spins(problem.n, rng=rng, dtype=problem.dtype)
+        h_eff = _evaluate.effective_field(j, h, s)
+        curr_energy = _evaluate.energy(j, h, c, s, h_eff=h_eff)
 
         best_energy = curr_energy
         best_spins = s.copy()
@@ -69,7 +69,7 @@ class TabuSearchSolver(Solver):
         steps_taken = 0
 
         for step in range(self.n_steps):
-            delta = evaluate.spin_flip_energy_update(s, h_eff)
+            delta = _evaluate.spin_flip_energy_update(s, h_eff)
 
             best_k = -1
             best_delta = np.inf
@@ -83,7 +83,7 @@ class TabuSearchSolver(Solver):
             if best_k == -1:
                 break
 
-            h_eff += evaluate.spin_flip_effective_field_update(j, s, best_k)
+            h_eff += _evaluate.spin_flip_effective_field_update(j, s, best_k)
             s[best_k] = -s[best_k]
             curr_energy += best_delta
             tabu_until[best_k] = step + self.tabu_tenure
@@ -111,7 +111,7 @@ class TabuSearchSolver(Solver):
             energy=best_energy,
             time_s=time.perf_counter() - t0,
             solver_name=self.name,
-            problem_id=problem.id,
+            problem_id=problem.fingerprint,
             trajectory=trajectory,
             meta=meta,
         )

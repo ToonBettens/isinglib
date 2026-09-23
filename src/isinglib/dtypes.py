@@ -5,9 +5,9 @@ from typing import Any, TypeIs
 import numpy as np
 import numpy.typing as npt
 
-from isinglib.utils.defaults import DEFAULT_FLOAT_DTYPE
-
 __all__ = (
+    "DEFAULT_FLOAT_DTYPE",
+    "MAX_FLOAT_DTYPE",
     "FloatArray",
     "FloatDType",
     "ScalarLike",
@@ -17,7 +17,11 @@ __all__ = (
 )
 
 
-# Type aliases. These document intent at zero runtime cost.
+DEFAULT_FLOAT_DTYPE = np.dtype(np.float64)  # Authoritative default dtype.
+MAX_FLOAT_DTYPE = np.dtype(np.float64)  # Widest dtype the library supports (fixed)
+
+
+# Type aliases.
 # Scalars in this library are plain Python `float`.
 # Spin/continuous states are plain `np.ndarray`.
 type FloatArray = npt.NDArray[np.floating]
@@ -43,16 +47,12 @@ def ensure_float_dtype(
     Args:
         dtype: Requested dtype, or None to use `default`.
         default: Fallback dtype when `dtype` is None.
-
-    Returns:
-        A floating `np.dtype`.
-
-    Raises:
-        TypeError: If the resolved dtype is not a floating type.
     """
     resolved = np.dtype(default if dtype is None else dtype)
     if not np.issubdtype(resolved, np.floating):
         raise TypeError(f"dtype {dtype!r} (resolved {resolved}) must be a floating dtype.")
+    if resolved.itemsize > MAX_FLOAT_DTYPE.itemsize:
+        raise TypeError(f"dtype {dtype!r} (resolved {resolved}) is wider than {MAX_FLOAT_DTYPE}.")
     return resolved
 
 
@@ -67,16 +67,16 @@ def ensure_float_array(
     Args:
         arr: Input array-like.
         dtype: Target dtype, or None to use the default.
-        copy: If True, always return an array that doesn't alias `arr`'s
-            memory — plain `np.asarray` returns `arr` itself unchanged
-            when it already has the resolved dtype. Trust boundaries that
-            need to guarantee independence from caller-owned memory (e.g.
-            before freezing an array read-only) should pass `copy=True`.
+        copy: If True, guarantee output is memory-independent from `arr`.
     """
     resolved = ensure_float_dtype(dtype)
     try:
+        if np.iscomplexobj(arr):
+            raise TypeError(f"Cannot coerce complex input to {resolved}; numpy would silently drop the imaginary part.")
         if copy:
             return np.array(arr, dtype=resolved, copy=True)
         return np.asarray(arr, dtype=resolved)
+    except TypeError:
+        raise
     except Exception as e:
         raise TypeError(f"Cannot coerce {type(arr).__name__} to dtype {resolved}.") from e

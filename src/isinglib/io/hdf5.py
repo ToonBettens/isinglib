@@ -1,20 +1,18 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Literal
 
 import numpy as np
 
-from isinglib.core.problem import Problem
 from isinglib.io._sparse import choose_encoding, from_edges, to_edges
+from isinglib.problem import Problem
 
 
 def read(
     path: str | Path,
     *,
     key: str = "problem",
-    meta: dict | None = None,
     dtype: np.dtype | None = None,
 ) -> Problem:
     """Load a Problem from an HDF5 file written by `write`.
@@ -22,7 +20,6 @@ def read(
     Args:
         path: Path to the `.h5` / `.hdf5` file.
         key: HDF5 group path within the file (e.g. `"experiment/run1"`).
-        meta: If provided, replaces the metadata stored in the file.
         dtype: If provided, overrides the dtype stored in the file.
     """
     import h5py
@@ -31,7 +28,6 @@ def read(
         grp = f[key]
         c = float(grp.attrs["c"])
         file_dtype = np.dtype(grp.attrs["dtype"])
-        file_meta = json.loads(grp.attrs.get("meta", "{}"))
         encoding = grp.attrs.get("encoding", "dense")
 
         if encoding == "sparse":
@@ -43,13 +39,7 @@ def read(
             raise ValueError(f"Unknown hdf5 encoding {encoding!r}.")
         h = grp["h"][:]
 
-    return Problem(
-        j=j,
-        h=h,
-        c=c,
-        dtype=file_dtype if dtype is None else dtype,
-        meta=meta if meta is not None else file_meta,
-    )
+    return Problem(j, h, c, file_dtype if dtype is None else dtype)
 
 
 def write(
@@ -96,5 +86,4 @@ def write(
         grp.create_dataset("h", data=problem.h, compression=compression)
         grp.attrs["c"] = problem.c
         grp.attrs["dtype"] = str(problem.dtype)
-        grp.attrs["meta"] = json.dumps(dict(problem.meta))
         grp.attrs["encoding"] = encoding

@@ -4,63 +4,67 @@ import numpy as np
 import pytest
 
 from isinglib import ExhaustiveSolver
-from isinglib.problems import planted_solution
-from isinglib.topology import complete, erdos_renyi
+from isinglib.generators import planted_solution
+from isinglib.states import random_spins
+from isinglib.topology import complete, erdos_renyi, fillers
+
+# ------------------------------------------------------------------
+# The planted state is a ground state
+# ------------------------------------------------------------------
 
 
-def test_planted_is_the_returned_ground_truth() -> None:
-    t = complete(8)
-    rng = np.random.default_rng(0)
-    p = planted_solution(t, coupling=lambda n: rng.uniform(0.1, 1.0, n), bias=0.5, rng=1)
-    planted = np.array(p.meta["planted_spins"])
-    assert p.energy(planted) == pytest.approx(p.meta["ground_truth_energy"])
+def test_planted_is_a_ground_state_of_its_own_problem() -> None:
+    spins = random_spins(8, rng=1)
+    p = planted_solution(
+        complete(8), fillers.uniform(0.1, 1.0, rng=0), bias=0.5, planted=spins
+    )
+    # Every term is individually satisfied at `spins`, so no state beats it.
+    assert p.energy(spins) == pytest.approx(-0.5 * np.abs(p.j).sum() - np.abs(p.h).sum())
 
 
 def test_planted_matches_exhaustive_ground_state() -> None:
     t = erdos_renyi(9, p=0.4, rng=np.random.default_rng(2))
-    rng = np.random.default_rng(3)
-    p = planted_solution(t, coupling=lambda n: rng.uniform(0.1, 1.0, n), bias=0.5, rng=4)
-    planted = np.array(p.meta["planted_spins"])
+    spins = random_spins(9, rng=4)
+    p = planted_solution(t, fillers.uniform(0.1, 1.0, rng=3), bias=0.5, planted=spins)
 
     sol = ExhaustiveSolver().solve(p)
-    assert sol.energy == pytest.approx(p.energy(planted))
-    assert np.array_equal(sol.spins, planted)
+    assert sol.energy == pytest.approx(p.energy(spins))
+    assert np.array_equal(sol.spins, spins)
 
 
-def test_explicit_planted_spins_are_used() -> None:
-    t = complete(4)
-    planted = np.array([1.0, -1.0, 1.0, -1.0])
-    p = planted_solution(t, coupling=1.0, bias=0.5, planted=planted)
-    assert np.array_equal(np.array(p.meta["planted_spins"]), planted)
-    assert p.energy(planted) == pytest.approx(p.meta["ground_truth_energy"])
-
-
-def test_rejects_wrong_shape_planted() -> None:
-    t = complete(4)
-    with pytest.raises(ValueError):
-        planted_solution(t, coupling=1.0, planted=np.array([1.0, -1.0]))
-
-
-def test_rejects_non_pm1_planted() -> None:
-    t = complete(4)
-    with pytest.raises(ValueError):
-        planted_solution(t, coupling=1.0, planted=np.array([1.0, -1.0, 0.5, 1.0]))
-
-
-def test_rejects_negative_coupling() -> None:
-    t = complete(4)
-    with pytest.raises(ValueError):
-        planted_solution(t, coupling=-1.0)
-
-
-def test_rejects_negative_bias() -> None:
-    t = complete(4)
-    with pytest.raises(ValueError):
-        planted_solution(t, coupling=1.0, bias=-1.0)
+def test_ground_truth_energy_is_recoverable_by_the_caller() -> None:
+    """No meta: the caller holds the spins, so the energy is one call away."""
+    spins = np.array([1.0, -1.0, 1.0, -1.0])
+    p = planted_solution(complete(4), coupling=1.0, bias=0.5, planted=spins)
+    assert p.energy(spins) == pytest.approx(-0.5 * np.abs(p.j).sum() - np.abs(p.h).sum())
 
 
 def test_zero_bias_leaves_flip_degeneracy() -> None:
-    t = complete(6)
-    p = planted_solution(t, coupling=1.0, bias=0.0, rng=5)
-    planted = np.array(p.meta["planted_spins"])
-    assert p.energy(planted) == pytest.approx(p.energy(-planted))
+    spins = random_spins(6, rng=5)
+    p = planted_solution(complete(6), coupling=1.0, bias=0.0, planted=spins)
+    assert p.energy(spins) == pytest.approx(p.energy(-spins))
+
+
+# ------------------------------------------------------------------
+# Validation
+# ------------------------------------------------------------------
+
+
+def test_rejects_wrong_shape_planted() -> None:
+    with pytest.raises(ValueError):
+        planted_solution(complete(4), coupling=1.0, planted=np.array([1.0, -1.0]))
+
+
+def test_rejects_non_pm1_planted() -> None:
+    with pytest.raises(ValueError):
+        planted_solution(complete(4), coupling=1.0, planted=np.array([1.0, -1.0, 0.5, 1.0]))
+
+
+def test_rejects_negative_coupling() -> None:
+    with pytest.raises(ValueError):
+        planted_solution(complete(4), coupling=-1.0, planted=np.ones(4))
+
+
+def test_rejects_negative_bias() -> None:
+    with pytest.raises(ValueError):
+        planted_solution(complete(4), coupling=1.0, bias=-1.0, planted=np.ones(4))

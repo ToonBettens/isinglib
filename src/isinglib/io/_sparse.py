@@ -5,7 +5,7 @@ from typing import Literal
 import numpy as np
 import numpy.typing as npt
 
-from isinglib.core.problem import Problem
+from isinglib.problem import Problem
 
 _SPARSITY_THRESHOLD = 0.10
 

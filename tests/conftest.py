@@ -15,7 +15,7 @@ def random_problem(n: int, seed: int = 0) -> Problem:
     j = (a + a.T) / 2.0
     np.fill_diagonal(j, 0.0)
     h = rng.standard_normal(n)
-    return Problem(j=j, h=h, meta={"name": f"random-{n}-{seed}"})
+    return Problem(j, h)
 
 
 @pytest.fixture

@@ -4,11 +4,11 @@ import time
 
 import numpy as np
 
-from isinglib.core import evaluate
-from isinglib.core.problem import Problem
-from isinglib.core.solution import Solution
-from isinglib.core.solver import Solver
-from isinglib.solvers.utils.states import random_spins
+from isinglib import _evaluate
+from isinglib.problem import Problem
+from isinglib.solution import Solution
+from isinglib.solvers.base import Solver
+from isinglib.states import random_spins
 
 __all__ = ("GreedySolver",)
 
@@ -22,7 +22,9 @@ class GreedySolver(Solver):
 
     Args:
         n_restarts: Number of random starting states to try.
-        rng: Random generator or seed for reproducability.
+        rng: Random generator or seed. An integer seed makes `solve`
+            deterministic; a `Generator` advances across calls, and the
+            default draws fresh entropy each call.
     """
 
     def __init__(
@@ -31,7 +33,7 @@ class GreedySolver(Solver):
         rng: np.random.Generator | int | None = None,
     ) -> None:
         self.n_restarts = n_restarts
-        self._rng = np.random.default_rng(rng)
+        self.rng = rng
 
     @property
     def name(self) -> str:
@@ -39,7 +41,7 @@ class GreedySolver(Solver):
 
     def solve(self, problem: Problem) -> Solution:
         t0 = time.perf_counter()
-        rng = self._rng
+        rng = np.random.default_rng(self.rng)
         j, h, c, n = problem.j, problem.h, problem.c, problem.n
         assert h is not None  # always set by Problem.__post_init__
 
@@ -48,19 +50,19 @@ class GreedySolver(Solver):
         total_flips = 0
 
         for _ in range(self.n_restarts):
-            s = random_spins(problem, rng=rng)
-            h_eff = evaluate.effective_field(j, h, s)
+            s = random_spins(problem.n, rng=rng, dtype=problem.dtype)
+            h_eff = _evaluate.effective_field(j, h, s)
 
             while True:
-                delta = evaluate.spin_flip_energy_update(s, h_eff)
+                delta = _evaluate.spin_flip_energy_update(s, h_eff)
                 k = int(np.argmin(delta))
                 if delta[k] >= 0.0:
                     break
-                h_eff += evaluate.spin_flip_effective_field_update(j, s, k)
+                h_eff += _evaluate.spin_flip_effective_field_update(j, s, k)
                 s[k] = -s[k]
                 total_flips += 1
 
-            energy = evaluate.energy(j, h, c, s, h_eff=h_eff)
+            energy = _evaluate.energy(j, h, c, s, h_eff=h_eff)
             if energy < best_energy:
                 best_energy = energy
                 best_spins = s.copy()
@@ -70,6 +72,6 @@ class GreedySolver(Solver):
             energy=best_energy,
             time_s=time.perf_counter() - t0,
             solver_name=self.name,
-            problem_id=problem.id,
+            problem_id=problem.fingerprint,
             meta={"n_restarts": self.n_restarts, "total_flips": total_flips},
         )
