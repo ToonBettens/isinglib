@@ -79,14 +79,16 @@ class Problem:
         j, h = self.j, self.h
         if j.ndim != 2 or j.shape[0] != j.shape[1]:
             raise ValueError(f"j must be a square 2-D array; got shape {j.shape}.")
+        # Before symmetry: NaN != NaN, so a non-finite j fails the symmetry test and
+        # would otherwise be reported as asymmetric.
+        if not np.isfinite(j).all():
+            raise ValueError("j must be finite; got NaN or infinity.")
         if not np.allclose(j, j.T, rtol=RTOL, atol=ATOL):
             raise ValueError("j must be symmetric.")
         if not np.allclose(np.diag(j), 0.0, rtol=RTOL, atol=ATOL):
             raise ValueError("j must have zero diagonal.")
         if h.ndim != 1 or h.shape[0] != j.shape[0]:
             raise ValueError(f"h must be 1-D with length {j.shape[0]}; got shape {h.shape}.")
-        if not np.isfinite(j).all():
-            raise ValueError("j must be finite; got NaN or infinity.")
         if not np.isfinite(h).all():
             raise ValueError("h must be finite; got NaN or infinity.")
 

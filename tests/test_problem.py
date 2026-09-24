@@ -83,9 +83,16 @@ def test_bias_length_must_match() -> None:
 
 
 @pytest.mark.parametrize("h", [np.array([np.nan, 1.0]), np.array([np.inf, 1.0])])
-def test_rejects_non_finite(h: np.ndarray) -> None:
+def test_rejects_non_finite_bias(h: np.ndarray) -> None:
     with pytest.raises(ValueError, match="finite"):
         Problem(j=np.zeros((2, 2)), h=h)
+
+
+@pytest.mark.parametrize("bad", [np.nan, np.inf])
+def test_rejects_non_finite_coupling(bad: float) -> None:
+    """Reported as non-finite, not as asymmetric: NaN != NaN fails symmetry first."""
+    with pytest.raises(ValueError, match="finite"):
+        Problem(j=np.array([[0.0, bad], [bad, 0.0]]))
 
 
 def test_rejects_dtype_wider_than_float64() -> None:
