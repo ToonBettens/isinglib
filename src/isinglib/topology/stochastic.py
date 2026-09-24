@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from isinglib.dtypes import DEFAULT_INDEX_DTYPE
 from isinglib.topology.topology import Topology
 
 __all__ = (
@@ -75,7 +76,7 @@ def barabasi_albert(
             nbrs[chosen].add(new)
             targets.add(chosen)
 
-    e = np.array(edges, dtype=np.int32)
+    e = np.array(edges, dtype=DEFAULT_INDEX_DTYPE)
     return Topology(n, e[:, 0], e[:, 1])
 
 
@@ -142,5 +143,5 @@ def watts_strogatz(
 
     if not edge_set:
         return Topology(n, [], [])
-    e = np.array(sorted(edge_set), dtype=np.int32)
+    e = np.array(sorted(edge_set), dtype=DEFAULT_INDEX_DTYPE)
     return Topology(n, e[:, 0], e[:, 1])

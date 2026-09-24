@@ -7,26 +7,29 @@ import numpy.typing as npt
 
 __all__ = (
     "DEFAULT_FLOAT_DTYPE",
+    "DEFAULT_INDEX_DTYPE",
     "MAX_FLOAT_DTYPE",
     "FloatArray",
     "FloatDType",
+    "IndexArray",
     "ScalarLike",
     "ensure_float_array",
     "ensure_float_dtype",
+    "ensure_index_array",
     "is_scalar_like",
 )
 
+MAX_FLOAT_DTYPE = np.dtype(np.float64)  # Widest dtype the library supports (fixed).
 
-DEFAULT_FLOAT_DTYPE = np.dtype(np.float64)  # Authoritative default dtype.
-MAX_FLOAT_DTYPE = np.dtype(np.float64)  # Widest dtype the library supports (fixed)
+DEFAULT_FLOAT_DTYPE = np.dtype(np.float64)  # Authoritative default floating dtype.
+DEFAULT_INDEX_DTYPE = np.dtype(np.int32)  # Authoritative dtype for indices.
 
 
 # Type aliases.
-# Scalars in this library are plain Python `float`.
-# Spin/continuous states are plain `np.ndarray`.
-type FloatArray = npt.NDArray[np.floating]
-type FloatDType = np.dtype[np.floating]
 type ScalarLike = int | float | np.floating
+type FloatDType = np.dtype[np.floating]
+type FloatArray = npt.NDArray[np.floating]
+type IndexArray = npt.NDArray[np.integer]
 
 
 def is_scalar_like(x: Any) -> TypeIs[ScalarLike]:
@@ -80,3 +83,28 @@ def ensure_float_array(
         raise
     except Exception as e:
         raise TypeError(f"Cannot coerce {type(arr).__name__} to dtype {resolved}.") from e
+
+
+def ensure_index_array(
+    arr: npt.ArrayLike,
+    dtype: npt.DTypeLike | None = None,
+    *,
+    copy: bool = False,
+) -> IndexArray:
+    """Coerce an array-like to an integer ndarray of the resolved dtype.
+
+    Args:
+        arr: Input array-like.
+        dtype: Target dtype, or None to use `DEFAULT_INDEX_DTYPE`.
+        copy: If True, guarantee output is memory-independent from `arr`.
+    """
+    resolved = np.dtype(DEFAULT_INDEX_DTYPE if dtype is None else dtype)
+    if not np.issubdtype(resolved, np.integer):
+        raise TypeError(f"dtype {dtype!r} (resolved {resolved}) must be an integer dtype.")
+    try:
+        probe = np.asarray(arr)
+    except Exception as e:
+        raise TypeError(f"Cannot coerce {type(arr).__name__} to dtype {resolved}.") from e
+    if probe.size and not (np.issubdtype(probe.dtype, np.integer) or probe.dtype == np.bool_):
+        raise TypeError(f"Cannot coerce {probe.dtype} input to {resolved}; pass an integer array.")
+    return np.array(probe, dtype=resolved, copy=True) if copy else probe.astype(resolved, copy=False)

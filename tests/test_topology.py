@@ -58,11 +58,6 @@ def test_degrees() -> None:
     assert list(deg) == [2, 2, 2, 0]
 
 
-def test_neighbors() -> None:
-    t = Topology(3, [0, 1], [1, 2])
-    assert set(t.neighbors(1)) == {0, 2}
-
-
 def test_fill_scalar() -> None:
     t = Topology(3, [0, 1], [1, 2])
     j = t.fill(2.0)

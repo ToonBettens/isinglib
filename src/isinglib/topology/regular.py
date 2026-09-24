@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from isinglib.dtypes import DEFAULT_INDEX_DTYPE
 from isinglib.topology.topology import Topology
 
 __all__ = (
@@ -29,8 +30,8 @@ def star(n: int) -> Topology:
         raise ValueError("n must be positive.")
     if n == 1:
         return Topology(1, [], [])
-    src = np.zeros(n - 1, dtype=np.int32)
-    dst = np.arange(1, n, dtype=np.int32)
+    src = np.zeros(n - 1, dtype=DEFAULT_INDEX_DTYPE)
+    dst = np.arange(1, n, dtype=DEFAULT_INDEX_DTYPE)
     return Topology(n, src, dst)
 
 
@@ -40,7 +41,7 @@ def path(n: int) -> Topology:
         raise ValueError("n must be positive.")
     if n == 1:
         return Topology(1, [], [])
-    src = np.arange(n - 1, dtype=np.int32)
+    src = np.arange(n - 1, dtype=DEFAULT_INDEX_DTYPE)
     return Topology(n, src, src + 1)
 
 
@@ -67,7 +68,7 @@ def ring(n: int, k: int = 2) -> Topology:
         for d in range(1, k // 2 + 1):
             a, b = i, (i + d) % n
             edge_set.add((min(a, b), max(a, b)))
-    edges = np.array(sorted(edge_set), dtype=np.int32)
+    edges = np.array(sorted(edge_set), dtype=DEFAULT_INDEX_DTYPE)
     return Topology(n, edges[:, 0], edges[:, 1])
 
 
@@ -99,7 +100,7 @@ def grid(rows: int, cols: int, *, periodic: bool = False) -> Topology:
 
     if not edges:
         return Topology(n, [], [])
-    e = np.array(edges, dtype=np.int32)
+    e = np.array(edges, dtype=DEFAULT_INDEX_DTYPE)
     return Topology(n, e[:, 0], e[:, 1])
 
 
@@ -130,5 +131,5 @@ def king(rows: int, cols: int, *, periodic: bool = False) -> Topology:
 
     if not edges:
         return Topology(n, [], [])
-    e = np.array(edges, dtype=np.int32)
+    e = np.array(edges, dtype=DEFAULT_INDEX_DTYPE)
     return Topology(n, e[:, 0], e[:, 1])
