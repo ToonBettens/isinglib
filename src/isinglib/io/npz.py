@@ -1,82 +1,82 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
 
 import numpy as np
 
-from isinglib.io._sparse import choose_encoding, from_edges, to_edges
+from isinglib.io._record import (
+    FORMAT_VERSION,
+    LayoutOptions,
+    Record,
+    check_version,
+    from_record,
+    to_record,
+)
 from isinglib.problem import Problem
+
+__all__ = ("read", "write")
 
 
 def read(path: str | Path) -> Problem:
-    """Load a Problem from an `.npz` file written by `write`.
-
-    The encoding (sparse or dense) used to store the file is recorded
-    inside it, so this always reconstructs correctly without being told.
+    """Load a Problem from a `.npz` file.
 
     Args:
         path: Path to the `.npz` file.
     """
     with np.load(path, allow_pickle=False) as data:
-        encoding = str(data["encoding"])
-        dtype = np.dtype(str(data["dtype"]))
-        c = float(data["c"])
+        version = int(data["format_version"]) if "format_version" in data else None
+        check_version(version)
 
-        if encoding == "sparse":
-            n = int(data["n"])
-            j = from_edges(n, data["src"], data["dst"], data["weight"], dtype)
-            h = data["h"]
-        elif encoding == "dense":
-            j = data["j"]
-            h = data["h"]
-        else:
-            raise ValueError(f"Unknown npz encoding {encoding!r}.")
-
-    return Problem(j, h, c, dtype)
+        sparse = str(data["layout"]) == "sparse"
+        record = Record(
+            j=(data["src"], data["dst"], data["weight"]) if sparse else data["j"],
+            dtype=str(data["dtype"]),
+            n=int(data["n"]),
+            c=float(data["c"]),
+            h=data["h"],
+            version=version if version is not None else FORMAT_VERSION,
+        )
+    return from_record(record)
 
 
 def write(
-    problem: Problem,
-    path: str | Path,
-    *,
-    encoding: Literal["auto", "sparse", "dense"] = "auto",
+    problem: Problem, path: str | Path, *, layout: LayoutOptions = "auto", overwrite: bool = False
 ) -> None:
-    """Serialise a Problem to a compressed `.npz` file.
+    """Serialise a Problem to a `.npz` file, at exactly `path`.
 
     Args:
         problem: The Problem to serialise.
         path: Destination file path.
-        encoding: "sparse" stores only the upper-triangle edges of `j`;
-            `"dense"` stores `j` as-is. `"auto"` (default)
-            picks based on `j`'s actual density.
+        layout: `"sparse"`, `"dense"` or `"auto"`.
+        overwrite: If False (default), raise if `path` already exists.
     """
-    h = problem.h
-
-    if encoding == "auto":
-        encoding = choose_encoding(problem)
-
-    if encoding == "sparse":
-        src, dst, weight = to_edges(problem)
-        np.savez_compressed(
-            path,
-            encoding="sparse",
-            dtype=str(problem.dtype),
-            c=problem.c,
-            n=problem.n,
-            src=src,
-            dst=dst,
-            weight=weight,
-            h=h,
-        )
-    elif encoding == "dense":
-        np.savez_compressed(
-            path,
-            encoding="dense",
-            dtype=str(problem.dtype),
-            c=problem.c,
-            j=problem.j,
-            h=h,
-        )
-    else:
-        raise ValueError(f"Unknown encoding {encoding!r}; expected 'auto', 'sparse', or 'dense'.")
+    path = Path(path)
+    if not overwrite and path.exists():
+        raise FileExistsError(f"{path} already exists; pass overwrite=True to replace it.")
+    record = to_record(problem, layout)
+    with path.open("wb") as f:  # prevent np.savez_compressed from adding .npz to file-paths lacking it
+        if isinstance(record.j, tuple):
+            src, dst, weight = record.j
+            np.savez_compressed(
+                f,
+                format_version=record.version,
+                layout=record.layout,
+                dtype=record.dtype,
+                n=record.n,
+                c=record.c,
+                h=record.h,
+                src=src,
+                dst=dst,
+                weight=weight,
+            )
+        else:
+            np.savez_compressed(
+                f,
+                format_version=record.version,
+                layout=record.layout,
+                dtype=record.dtype,
+                n=record.n,
+                c=record.c,
+                h=record.h,
+                j=record.j,
+            )

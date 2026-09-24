@@ -1,55 +1,43 @@
 from __future__ import annotations
 
-import numpy as np
 import pytest
 
-from isinglib import Problem
 from isinglib.io import hdf5
-from isinglib.topology import complete, fillers, star
 
 h5py = pytest.importorskip("h5py")
 
 
-def _sparse_problem() -> Problem:
-    t = star(30)
-    return Problem(t.fill(fillers.uniform(0.1, 1.0, rng=0)), 0.5 * np.ones(t.n))
 
-
-def _dense_problem() -> Problem:
-    t = complete(10)
-    return Problem(t.fill(fillers.uniform(0.1, 1.0, rng=1)), 0.5 * np.ones(t.n))
-
-
-@pytest.mark.parametrize("encoding", ["sparse", "dense"])
-def test_round_trip_explicit_encoding(tmp_path, encoding) -> None:
-    p = _sparse_problem()
+@pytest.mark.parametrize("layout", ["sparse", "dense"])
+def test_round_trip_explicit_layout(tmp_path, sparse_problem, layout) -> None:
+    p = sparse_problem
     path = tmp_path / "p.h5"
-    hdf5.write(p, path, encoding=encoding)
+    hdf5.write(p, path, layout=layout)
     loaded = hdf5.read(path)
     assert loaded == p
     assert loaded.dtype == p.dtype
 
 
-def test_auto_picks_sparse_for_sparse_graph(tmp_path) -> None:
-    p = _sparse_problem()
+def test_auto_picks_sparse_for_sparse_graph(tmp_path, sparse_problem) -> None:
+    p = sparse_problem
     path = tmp_path / "p.h5"
-    hdf5.write(p, path, encoding="auto")
+    hdf5.write(p, path, layout="auto")
     with h5py.File(path, "r") as f:
-        assert f["problem"].attrs["encoding"] == "sparse"
+        assert f["problem"].attrs["layout"] == "sparse"
     assert hdf5.read(path) == p
 
 
-def test_auto_picks_dense_for_dense_graph(tmp_path) -> None:
-    p = _dense_problem()
+def test_auto_picks_dense_for_dense_graph(tmp_path, dense_problem) -> None:
+    p = dense_problem
     path = tmp_path / "p.h5"
-    hdf5.write(p, path, encoding="auto")
+    hdf5.write(p, path, layout="auto")
     with h5py.File(path, "r") as f:
-        assert f["problem"].attrs["encoding"] == "dense"
+        assert f["problem"].attrs["layout"] == "dense"
     assert hdf5.read(path) == p
 
 
-def test_reads_legacy_file_without_encoding_attr_as_dense(tmp_path) -> None:
-    p = _dense_problem()
+def test_reads_legacy_file_without_layout_attr_as_dense(tmp_path, dense_problem) -> None:
+    p = dense_problem
     path = tmp_path / "legacy.h5"
     with h5py.File(path, "a") as f:
         grp = f.create_group("problem")
@@ -65,8 +53,8 @@ def test_reads_legacy_file_without_encoding_attr_as_dense(tmp_path) -> None:
     assert loaded.h.tolist() == p.h.tolist()
 
 
-def test_multiple_keys_coexist(tmp_path) -> None:
-    a, b = _sparse_problem(), _dense_problem()
+def test_multiple_keys_coexist(tmp_path, sparse_problem, dense_problem) -> None:
+    a, b = sparse_problem, dense_problem
     path = tmp_path / "multi.h5"
     hdf5.write(a, path, key="a")
     hdf5.write(b, path, key="b")
@@ -74,7 +62,29 @@ def test_multiple_keys_coexist(tmp_path) -> None:
     assert hdf5.read(path, key="b") == b
 
 
-def test_rejects_unknown_encoding(tmp_path) -> None:
-    p = _sparse_problem()
+def test_rejects_unknown_layout(tmp_path, sparse_problem) -> None:
+    p = sparse_problem
     with pytest.raises(ValueError):
-        hdf5.write(p, tmp_path / "p.h5", encoding="bogus")  # type: ignore
+        hdf5.write(p, tmp_path / "p.h5", layout="bogus")  # type: ignore
+
+
+def test_write_refuses_an_existing_key_by_default(tmp_path, sparse_problem, dense_problem) -> None:
+    path = tmp_path / "p.h5"
+    hdf5.write(sparse_problem, path, key="run1")
+    with pytest.raises(FileExistsError, match="overwrite=True"):
+        hdf5.write(dense_problem, path, key="run1")
+
+
+def test_overwrite_true_replaces_the_key(tmp_path, sparse_problem, dense_problem) -> None:
+    path = tmp_path / "p.h5"
+    hdf5.write(sparse_problem, path, key="run1")
+    hdf5.write(dense_problem, path, key="run1", overwrite=True)
+    assert hdf5.read(path, key="run1") == dense_problem
+
+
+def test_a_new_key_needs_no_overwrite_even_when_the_file_exists(tmp_path, sparse_problem, dense_problem) -> None:
+    path = tmp_path / "p.h5"
+    hdf5.write(sparse_problem, path, key="run1")
+    hdf5.write(dense_problem, path, key="run2")  # no overwrite=True needed
+    assert hdf5.read(path, key="run1") == sparse_problem
+    assert hdf5.read(path, key="run2") == dense_problem
