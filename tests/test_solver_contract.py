@@ -12,8 +12,8 @@ from typing import Any
 import numpy as np
 import pytest
 
-from isinglib import (
-    Problem,
+from isinglib import Problem
+from isinglib.solvers import (
     branch_and_bound,
     exhaustive,
     first_improvement,

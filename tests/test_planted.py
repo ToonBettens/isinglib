@@ -3,8 +3,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from isinglib import exhaustive
 from isinglib.generators import planted_solution
+from isinglib.solvers import exhaustive
 from isinglib.states import random_spins
 from isinglib.topology import complete, erdos_renyi, fillers
 

@@ -1,4 +1,4 @@
-from __future__ import annotations
+"""Reading and writing problems: JSON, NPZ and HDF5 backends behind `read`/`write`."""
 
 from isinglib.io import hdf5, json, npz
 from isinglib.io._dispatch import read, write

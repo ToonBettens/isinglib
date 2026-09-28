@@ -1,3 +1,5 @@
+"""Topologies: coupling graphs, regular and random, filled into `j` via `fillers`."""
+
 from isinglib.topology import fillers
 from isinglib.topology.regular import (
     complete,

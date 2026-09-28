@@ -1,3 +1,5 @@
+"""Solvers: plain functions, `Problem` in, `Solution` out."""
+
 from isinglib.solvers.base import Solution
 from isinglib.solvers.branch_and_bound import branch_and_bound
 from isinglib.solvers.exhaustive import exhaustive

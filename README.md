@@ -6,9 +6,11 @@ different solving approaches (combinatorial and continuous solvers) can be
 compared on the same footing.
 
 Currently implemented: the `Problem` and `Topology` types, graph generators,
-and five algorithmic solvers (exhaustive, steepest descent, first improvement,
-simulated annealing, tabu search). Continuous solvers, benchmark loaders, and
-landscape/result analysis tools are planned but not yet built.
+and nine solvers: exact (exhaustive, branch and bound), local search (steepest
+descent, first improvement), stochastic search (simulated annealing, tabu
+search, parallel tempering) and simulated bifurcation (ballistic, discrete).
+Continuous solvers, benchmark loaders, and landscape/result analysis tools are
+planned but not yet built.
 
 ## Energy convention
 
@@ -25,8 +27,9 @@ Solvers are plain functions: `Problem` in, `Solution` out.
 
 ```python
 import numpy as np
-from isinglib import Problem, exhaustive, simulated_annealing, tabu_search
+from isinglib import Problem
 from isinglib.generators import planted_solution
+from isinglib.solvers import exhaustive, simulated_annealing, tabu_search
 from isinglib.states import random_spins
 from isinglib.topology import erdos_renyi, fillers, grid
 
