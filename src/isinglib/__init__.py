@@ -1,21 +1,27 @@
 from isinglib.problem import Problem
-from isinglib.solution import Solution
-from isinglib.solvers.algorithmic import (
-    ExhaustiveSolver,
-    GreedySolver,
-    SimulatedAnnealingSolver,
-    TabuSearchSolver,
+from isinglib.solvers import (
+    Solution,
+    branch_and_bound,
+    exhaustive,
+    first_improvement,
+    parallel_tempering,
+    simulated_annealing,
+    simulated_bifurcation,
+    steepest_descent,
+    tabu_search,
 )
-from isinglib.solvers.base import Solver
 from isinglib.topology import Topology
 
 __all__ = (
-    "ExhaustiveSolver",
-    "GreedySolver",
     "Problem",
-    "SimulatedAnnealingSolver",
     "Solution",
-    "Solver",
-    "TabuSearchSolver",
     "Topology",
+    "branch_and_bound",
+    "exhaustive",
+    "first_improvement",
+    "parallel_tempering",
+    "simulated_annealing",
+    "simulated_bifurcation",
+    "steepest_descent",
+    "tabu_search",
 )

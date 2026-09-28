@@ -6,9 +6,9 @@ different solving approaches (combinatorial and continuous solvers) can be
 compared on the same footing.
 
 Currently implemented: the `Problem` and `Topology` types, graph generators,
-and four algorithmic solvers (exhaustive, greedy, simulated annealing, tabu
-search). Continuous solvers, benchmark loaders, and landscape/result analysis
-tools are planned but not yet built.
+and five algorithmic solvers (exhaustive, steepest descent, first improvement,
+simulated annealing, tabu search). Continuous solvers, benchmark loaders, and
+landscape/result analysis tools are planned but not yet built.
 
 ## Energy convention
 
@@ -19,22 +19,59 @@ E(s) = -0.5 * s^T j s - h^T s + c
 `j` is the symmetric, zero-diagonal coupling matrix; `h` is the bias vector;
 `c` is a scalar offset. Spin states take values in {-1, +1}.
 
-## Example
+## Examples
+
+Solvers are plain functions: `Problem` in, `Solution` out.
 
 ```python
 import numpy as np
-from isinglib import Problem, SimulatedAnnealingSolver
-from isinglib.topology import erdos_renyi
+from isinglib import Problem, exhaustive, simulated_annealing, tabu_search
+from isinglib.generators import planted_solution
+from isinglib.states import random_spins
+from isinglib.topology import erdos_renyi, fillers, grid
 
 rng = np.random.default_rng(0)
+```
 
-# Build a random graph, then attach random couplings to get a Problem.
+**Build a `Problem` directly from arrays**, when you already have the couplings:
+
+```python
+j = np.array([[0.0, 1.0], [1.0, 0.0]])
+h = np.array([0.5, -0.5])
+problem = Problem(j, h)
+solution = exhaustive(problem)
+```
+
+**Combine a `Topology` with a filler** to get random couplings on a random graph:
+
+```python
 topology = erdos_renyi(20, p=0.3, rng=rng)
-problem = Problem.from_topology(topology, coupling=rng.standard_normal)
+j = topology.fill(fillers.uniform(-1.0, 1.0, rng=rng))
+problem = Problem(j)
+solution = simulated_annealing(problem, rng=rng)
+```
 
-solution = SimulatedAnnealingSolver(rng=rng).solve(problem)
-print(solution.spins)
-print(solution.energy)
+**Or on a regular lattice**, with a fixed-magnitude, random-sign filler:
+
+```python
+lattice = grid(4, 4, periodic=True)
+j = lattice.fill(fillers.pm_one(rng=rng))
+problem = Problem(j)
+solution = tabu_search(problem, rng=rng)
+```
+
+**Plant a known ground state**, for checking a solver against the right answer:
+
+```python
+planted = random_spins(9, rng=rng)
+problem = planted_solution(
+    erdos_renyi(9, p=0.4, rng=rng),
+    coupling=fillers.uniform(0.1, 1.0, rng=rng),
+    bias=0.1,
+    planted=planted,
+)
+solution = exhaustive(problem)
+assert np.isclose(solution.energy, problem.energy(planted))
 ```
 
 ## Development

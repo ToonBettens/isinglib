@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from isinglib import ExhaustiveSolver
+from isinglib import exhaustive
 from isinglib.generators import planted_solution
 from isinglib.states import random_spins
 from isinglib.topology import complete, erdos_renyi, fillers
@@ -27,7 +27,7 @@ def test_planted_matches_exhaustive_ground_state() -> None:
     spins = random_spins(9, rng=4)
     p = planted_solution(t, fillers.uniform(0.1, 1.0, rng=3), bias=0.5, planted=spins)
 
-    sol = ExhaustiveSolver().solve(p)
+    sol = exhaustive(p)
     assert sol.energy == pytest.approx(p.energy(spins))
     assert np.array_equal(sol.spins, spins)
 

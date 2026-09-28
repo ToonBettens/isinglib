@@ -3,9 +3,35 @@ from __future__ import annotations
 import numpy as np
 import numpy.typing as npt
 
-from isinglib.dtypes import FloatArray, ensure_float_dtype
+from isinglib.dtypes import FloatArray, ensure_float_array, ensure_float_dtype
 
-__all__ = ("constant_spins", "random_spins")
+__all__ = ("constant_spins", "ensure_spins", "random_spins")
+
+
+def ensure_spins(
+    spins: npt.ArrayLike,
+    n: int,
+    *,
+    dtype: npt.DTypeLike | None = None,
+    copy: bool = False,
+) -> FloatArray:
+    """Coerce and validate a spin configuration: shape `(n,)`, valued in {-1, +1}.
+
+    Args:
+        spins: Candidate spin configuration.
+        n: Required length.
+        dtype: Target float dtype (default float64).
+        copy: If True, guarantee the output is memory-independent from `spins`.
+
+    Raises:
+        ValueError: If the shape is wrong, or a value isn't -1.0 or 1.0.
+    """
+    arr = ensure_float_array(spins, dtype=dtype, copy=copy)
+    if arr.shape != (n,):
+        raise ValueError(f"spins must have shape ({n},), got {arr.shape}.")
+    if not np.all(np.isin(arr, (-1.0, 1.0))):
+        raise ValueError("spins must contain only -1.0 and 1.0.")
+    return arr
 
 
 def random_spins(

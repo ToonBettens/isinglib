@@ -7,7 +7,7 @@ from functools import cached_property
 import numpy as np
 import numpy.typing as npt
 
-from isinglib import _evaluate
+from isinglib._evaluate import energy
 from isinglib.dtypes import (
     MAX_FLOAT_DTYPE,
     FloatArray,
@@ -131,7 +131,7 @@ class Problem:
 
     def energy(self, s: npt.ArrayLike) -> float:
         """Return `E(s) = -0.5 sᵀ j s - hᵀ s + c` for spin vector `s`."""
-        return _evaluate.energy(self.j, self.h, self.c, np.asarray(s, dtype=self.dtype))
+        return energy(self.j, self.h, self.c, np.asarray(s, dtype=self.dtype))
 
     def replace(
         self,

@@ -3,8 +3,9 @@ from __future__ import annotations
 import numpy as np
 import numpy.typing as npt
 
-from isinglib.dtypes import ensure_float_array, ensure_float_dtype
+from isinglib.dtypes import ensure_float_dtype
 from isinglib.problem import Problem
+from isinglib.states import ensure_spins
 from isinglib.topology.fillers import FillerLike, resolve
 from isinglib.topology.topology import Topology
 
@@ -49,12 +50,7 @@ def planted_solution(
         dtype: Target float dtype (default float64).
     """
     resolved = ensure_float_dtype(dtype)
-
-    spins = ensure_float_array(planted, resolved)
-    if spins.shape != (topology.n,):
-        raise ValueError(f"planted must have shape ({topology.n},), got {spins.shape}.")
-    if not np.all(np.isin(spins, (-1.0, 1.0))):
-        raise ValueError("planted must contain only -1.0 and 1.0.")
+    spins = ensure_spins(planted, topology.n, dtype=resolved)
 
     coupling_magnitudes = topology.fill(coupling)
     if np.any(coupling_magnitudes < 0.0):
