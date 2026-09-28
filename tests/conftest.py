@@ -5,8 +5,8 @@ from collections.abc import Callable
 import numpy as np
 import pytest
 
-from isinglib import Problem
-from isinglib.topology import complete, fillers, star
+from isinglib import Problem, generators
+from isinglib.topology import complete, star
 
 
 def random_problem(n: int, seed: int = 0) -> Problem:
@@ -33,11 +33,9 @@ def small_problem() -> Problem:
 @pytest.fixture
 def sparse_problem() -> Problem:
     """A star: 29 edges out of C(30, 2) = 435, well under the sparsity threshold."""
-    t = star(30)
-    return Problem(t.fill(fillers.uniform(0.1, 1.0, rng=0)), 0.5 * np.ones(t.n))
+    return generators.uniform(star(30), 0.1, 1.0, rng=0).replace(h=0.5)
 
 
 @pytest.fixture
 def dense_problem() -> Problem:
-    t = complete(10)
-    return Problem(t.fill(fillers.uniform(0.1, 1.0, rng=1)), 0.5 * np.ones(t.n))
+    return generators.uniform(complete(10), 0.1, 1.0, rng=1).replace(h=0.5)

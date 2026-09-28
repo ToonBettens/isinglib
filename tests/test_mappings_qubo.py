@@ -5,17 +5,14 @@ import itertools
 import numpy as np
 import pytest
 
-from isinglib import Problem
+from isinglib import Problem, generators
 from isinglib.mappings import qubo
-from isinglib.topology import complete, fillers
+from isinglib.topology import complete
 
 
 def _problem(n: int = 5, seed: int = 0) -> Problem:
-    t = complete(n)
-    return Problem(
-        t.fill(fillers.gaussian(rng=seed)),
-        fillers.resolve(fillers.gaussian(rng=seed + 1), n),
-    )
+    h = np.random.default_rng(seed + 1).normal(0.0, 1.0, n)
+    return generators.gaussian(complete(n), rng=seed).replace(h=h)
 
 
 # ------------------------------------------------------------------

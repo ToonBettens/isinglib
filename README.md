@@ -23,58 +23,74 @@ E(s) = -0.5 * s^T j s - h^T s + c
 
 ## Examples
 
-Solvers are plain functions: `Problem` in, `Solution` out.
+Generators turn parameters, usually a `Topology`, into a `Problem`. Solvers
+are plain functions: `Problem` in, `Solution` out.
 
 ```python
 import numpy as np
-from isinglib import Problem
-from isinglib.generators import planted_solution
+from isinglib import Problem, generators
 from isinglib.solvers import exhaustive, simulated_annealing, tabu_search
 from isinglib.states import random_spins
-from isinglib.topology import erdos_renyi, fillers, grid
+from isinglib.topology import erdos_renyi, grid, king
 
 rng = np.random.default_rng(0)
 ```
 
-**Build a `Problem` directly from arrays**, when you already have the couplings:
+**The Sherrington-Kirkpatrick model**, the canonical spin glass:
 
 ```python
-j = np.array([[0.0, 1.0], [1.0, 0.0]])
-h = np.array([0.5, -0.5])
-problem = Problem(j, h)
-solution = exhaustive(problem)
-```
-
-**Combine a `Topology` with a filler** to get random couplings on a random graph:
-
-```python
-topology = erdos_renyi(20, p=0.3, rng=rng)
-j = topology.fill(fillers.uniform(-1.0, 1.0, rng=rng))
-problem = Problem(j)
+problem = generators.sherrington_kirkpatrick(100, rng=rng)
 solution = simulated_annealing(problem, rng=rng)
 ```
 
-**Or on a regular lattice**, with a fixed-magnitude, random-sign filler:
+**Random couplings on a random graph**:
+
+```python
+problem = generators.uniform(erdos_renyi(20, p=0.3, rng=rng), -10.0, 10.0, rng=rng)
+solution = simulated_annealing(problem, rng=rng)
+```
+
+**The 3-D Edwards-Anderson spin glass**, the classic hard short-range benchmark:
+
+```python
+problem = generators.edwards_anderson(6, rng=rng)
+solution = simulated_annealing(problem, rng=rng)
+```
+
+**A ±J spin glass on a torus, with a random bias**:
 
 ```python
 lattice = grid(4, 4, periodic=True)
-j = lattice.fill(fillers.pm_one(rng=rng))
-problem = Problem(j)
+problem = generators.pm_one(lattice, rng=rng).replace(h=rng.normal(0.0, 0.1, lattice.n))
 solution = tabu_search(problem, rng=rng)
 ```
 
-**Plant a known ground state**, for checking a solver against the right answer:
+**A ferromagnet with a uniform bias**:
 
 ```python
-planted = random_spins(9, rng=rng)
-problem = planted_solution(
-    erdos_renyi(9, p=0.4, rng=rng),
-    coupling=fillers.uniform(0.1, 1.0, rng=rng),
-    bias=0.1,
-    planted=planted,
-)
+problem = generators.constant(king(3, 3), 1.0).replace(h=0.5)
 solution = exhaustive(problem)
-assert np.isclose(solution.energy, problem.energy(planted))
+```
+
+**Custom couplings**: `Topology.fill` takes a scalar, one value per edge, or
+a callable handed the edge count, and `Problem` takes the arrays directly:
+
+```python
+problem = Problem(grid(3, 3).fill(lambda m: rng.exponential(1.0, m)), h=0.1)
+lattice = grid(3, 3)
+problem = Problem(lattice.fill(np.linspace(0.1, 1.0, lattice.num_edges)))
+```
+
+**Plant a known ground state** with the Mattis model, whose couplings all point
+towards a chosen state, for checking a solver against the right answer:
+
+```python
+topology = erdos_renyi(9, p=0.4, rng=rng)
+state = random_spins(9, rng=rng)
+problem = generators.mattis(topology, state)
+problem = problem.replace(h=0.1 * state)  # makes `state` the unique ground state
+solution = exhaustive(problem)
+assert np.array_equal(solution.spins, state)
 ```
 
 ## Development

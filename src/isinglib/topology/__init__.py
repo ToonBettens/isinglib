@@ -1,6 +1,5 @@
-"""Topologies: coupling graphs, regular and random, filled into `j` via `fillers`."""
+"""Topologies: coupling graphs, regular and random."""
 
-from isinglib.topology import fillers
 from isinglib.topology.regular import (
     chimera,
     complete,
@@ -26,7 +25,6 @@ __all__ = (
     "complete",
     "cycle",
     "erdos_renyi",
-    "fillers",
     "grid",
     "king",
     "mobius_ladder",

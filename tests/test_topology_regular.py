@@ -89,6 +89,30 @@ def test_king_has_more_edges_than_grid() -> None:
     assert t_king.num_edges > t_grid.num_edges
 
 
+@pytest.mark.parametrize(("dims", "degree"), [((5,), 2), ((3, 4), 8), ((3, 3, 4), 26)])
+def test_periodic_king_has_3_to_the_d_minus_1_neighbours(dims: tuple[int, ...], degree: int) -> None:
+    assert np.all(king(*dims, periodic=True).degrees() == degree)
+
+
+def test_king_couples_diagonally_in_3d() -> None:
+    t = king(3, 3, 3)
+    edges = {(int(s), int(d)) for s, d in zip(*t.edges(), strict=True)}
+    # (0,0,0) = 0 neighbours its body diagonal (1,1,1) = 13 and a face diagonal (0,1,1) = 4.
+    assert {(0, 13), (0, 4)} <= edges
+    # The centre (1,1,1) = 13 couples to all 26 other nodes.
+    assert t.degrees()[13] == 26
+
+
+def test_king_1d_is_the_path() -> None:
+    assert np.array_equal(king(6).src, grid(6).src) and np.array_equal(king(6).dst, grid(6).dst)
+
+
+@pytest.mark.parametrize(("dims", "periodic"), [((), False), ((3, 0), False), ((3, 2), True)])
+def test_king_rejects_bad_shapes(dims: tuple[int, ...], periodic: bool) -> None:
+    with pytest.raises(ValueError):
+        king(*dims, periodic=periodic)
+
+
 # ----------------------------------------------------------------
 # mobius_ladder
 # ----------------------------------------------------------------
@@ -157,3 +181,61 @@ def test_chimera_antiferromagnet_is_unfrustrated() -> None:
     topo = chimera(1, 2, t=2)
     p = Problem(topo.fill(-1.0))
     assert exhaustive(p).energy == pytest.approx(-topo.num_edges)
+
+
+# ----------------------------------------------------------------
+# grid in any dimension
+# ----------------------------------------------------------------
+
+
+def test_grid_numbers_nodes_row_major() -> None:
+    t = grid(2, 3)
+    edges = set(zip(t.src.tolist(), t.dst.tolist(), strict=True))
+    assert edges == {(0, 1), (1, 2), (3, 4), (4, 5), (0, 3), (1, 4), (2, 5)}
+
+
+def test_grid_1d_is_a_path_or_cycle() -> None:
+    assert np.array_equal(grid(6).src, path(6).src) and np.array_equal(grid(6).dst, path(6).dst)
+    ring6 = grid(6, periodic=True)
+    assert np.array_equal(ring6.src, cycle(6).src) and np.array_equal(ring6.dst, cycle(6).dst)
+
+
+def test_grid_periodic_is_2d_regular() -> None:
+    t = grid(3, 3, 3, 3, periodic=True)
+    assert t.n == 81
+    assert t.num_edges == 4 * 81
+    assert np.all(t.degrees() == 8)
+
+
+def test_grid_open_edge_count_for_unequal_sides() -> None:
+    # Per axis: (size - 1) edges along each of the n / size lines.
+    assert grid(2, 3, 4).num_edges == 12 + 16 + 18
+
+
+def test_grid_couples_along_every_axis() -> None:
+    edges = set(zip(*grid(3, 3, 3).edges(), strict=True))
+    # (0,0,0) = 0 neighbours (1,0,0) = 9, (0,1,0) = 3 and (0,0,1) = 1.
+    assert {(0, 9), (0, 3), (0, 1)} <= {(int(s), int(d)) for s, d in edges}
+
+
+@pytest.mark.parametrize(("dims", "periodic"), [((), False), ((3, 0), False), ((0,), False), ((3, 2, 3), True)])
+def test_grid_rejects_bad_shapes(dims: tuple[int, ...], periodic: bool) -> None:
+    with pytest.raises(ValueError):
+        grid(*dims, periodic=periodic)
+
+
+# ----------------------------------------------------------------
+# periodic lattices need room to wrap
+# ----------------------------------------------------------------
+
+
+@pytest.mark.parametrize("make", [grid, king])
+@pytest.mark.parametrize(("rows", "cols"), [(1, 4), (2, 4), (4, 2)])
+def test_periodic_grid_rejects_sides_too_short_to_wrap(make, rows: int, cols: int) -> None:
+    with pytest.raises(ValueError, match=">= 3"):
+        make(rows, cols, periodic=True)
+
+
+@pytest.mark.parametrize(("make", "degree"), [(grid, 4), (king, 8)])
+def test_periodic_grid_is_regular(make, degree: int) -> None:
+    assert np.all(make(3, 5, periodic=True).degrees() == degree)

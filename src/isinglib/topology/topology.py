@@ -1,16 +1,19 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import cast
+
 import numpy as np
 import numpy.typing as npt
 
 from isinglib.dtypes import (
-    DEFAULT_FLOAT_DTYPE,
     DEFAULT_INDEX_DTYPE,
     FloatArray,
     IndexArray,
+    ensure_float_array,
+    ensure_float_dtype,
     ensure_index_array,
 )
-from isinglib.topology.fillers import FillerLike, resolve
 
 __all__ = ("Topology",)
 
@@ -109,22 +112,36 @@ class Topology:
             np.add.at(deg, self.dst, 1)
         return deg
 
-    def fill(self, filler: FillerLike) -> FloatArray:
-        """Build a dense (n, n) coupling matrix from a weight specification.
+    def fill(
+        self,
+        values: npt.ArrayLike | Callable[[int], npt.ArrayLike],
+        *,
+        dtype: npt.DTypeLike | None = None,
+    ) -> FloatArray:
+        """Build a dense (n, n) coupling matrix with `values` on the edges.
 
         Args:
-            filler: A weight specification (see fillers.py).
+            values: A scalar for every edge; one value per edge, in the order
+                of `edges()`; or a callable handed the edge count that returns
+                that many values, e.g. `rng.standard_normal`.
+            dtype: Target float dtype (default float64).
 
         Returns:
-            Symmetric (n, n) array of dtype `DEFAULT_FLOAT_DTYPE` with zero diagonal.
+            Symmetric (n, n) array with zero diagonal.
         """
         s, d = self.edges()
-        values = resolve(filler, self.num_edges)
+        if callable(values):
+            values = cast(Callable[[int], npt.ArrayLike], values)(self.num_edges)  # recover signature from ArrayLike union
+        weights = ensure_float_array(values, dtype)
+        if weights.ndim == 0:
+            weights = np.full(self.num_edges, weights)
+        elif weights.shape != (self.num_edges,):
+            raise ValueError(f"values must be a scalar or have shape ({self.num_edges},), got {weights.shape}.")
 
-        mat = np.zeros((self.n, self.n), dtype=DEFAULT_FLOAT_DTYPE)
+        mat = np.zeros((self.n, self.n), dtype=ensure_float_dtype(dtype))
         if self.num_edges:
-            mat[s, d] = values
-            mat[d, s] = values
+            mat[s, d] = weights
+            mat[d, s] = weights
         return mat
 
     # ------------------------------------------------------------------

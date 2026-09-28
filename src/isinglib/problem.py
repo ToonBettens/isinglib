@@ -30,7 +30,7 @@ class Problem:
 
     Attributes:
         j: Symmetric (n, n) coupling matrix with zero diagonal.
-        h: (n,) bias vector.
+        h: (n,) bias vector (the external field).
         c: Scalar energy offset.
     """
 
@@ -41,7 +41,7 @@ class Problem:
     def __init__(
         self,
         j: npt.ArrayLike,
-        h: npt.ArrayLike | None = None,
+        h: npt.ArrayLike = 0.0,
         c: float = 0.0,
         dtype: npt.DTypeLike | None = None,
     ) -> None:
@@ -49,48 +49,49 @@ class Problem:
 
         Args:
             j: Symmetric (n, n) coupling matrix with zero diagonal.
-            h: (n,) bias vector; zeros if not given.
+            h: Bias: a scalar for every spin, or an (n,) vector.
             c: Scalar energy offset.
             dtype: Target float dtype (default float64).
         """
         resolved = ensure_float_dtype(dtype)
-        couplings = ensure_float_array(j, dtype=resolved, copy=True)
-        biases = (
-            ensure_float_array(h, dtype=resolved, copy=True)
-            if h is not None
-            else ensure_float_array(np.zeros(couplings.shape[:1]), dtype=resolved)
-        )
-        offset = float(c)
-
-        # Normalize -0.0 onto 0.0
-        couplings += 0.0
-        biases += 0.0
-        offset += 0.0
-
-        couplings.setflags(write=False)
-        biases.setflags(write=False)
+        couplings = self._coerce_j(j, resolved)
+        biases = self._coerce_h(h, couplings.shape[0], resolved)
+        cte = self._coerce_c(c)
         object.__setattr__(self, "j", couplings)
         object.__setattr__(self, "h", biases)
-        object.__setattr__(self, "c", offset)
-        self._validate()
+        object.__setattr__(self, "c", cte)
 
-    def _validate(self) -> None:
-        """Raise if `j` or `h` violate the Ising problem invariants."""
-        j, h = self.j, self.h
-        if j.ndim != 2 or j.shape[0] != j.shape[1]:
-            raise ValueError(f"j must be a square 2-D array; got shape {j.shape}.")
-        # Before symmetry: NaN != NaN, so a non-finite j fails the symmetry test and
-        # would otherwise be reported as asymmetric.
-        if not np.isfinite(j).all():
+    @staticmethod
+    def _coerce_j(j: npt.ArrayLike, dtype: FloatDType) -> FloatArray:
+        couplings = ensure_float_array(j, dtype=dtype, copy=True)
+        couplings += 0.0  # Normalize -0.0 onto 0.0
+        if couplings.ndim != 2 or couplings.shape[0] != couplings.shape[1]:
+            raise ValueError(f"j must be a square 2-D array; got shape {couplings.shape}.")
+        if not np.isfinite(couplings).all():
             raise ValueError("j must be finite; got NaN or infinity.")
-        if not np.allclose(j, j.T, rtol=RTOL, atol=ATOL):
+        if not np.allclose(couplings, couplings.T, rtol=RTOL, atol=ATOL):
             raise ValueError("j must be symmetric.")
-        if not np.allclose(np.diag(j), 0.0, rtol=RTOL, atol=ATOL):
+        if not np.allclose(np.diag(couplings), 0.0, rtol=RTOL, atol=ATOL):
             raise ValueError("j must have zero diagonal.")
-        if h.ndim != 1 or h.shape[0] != j.shape[0]:
-            raise ValueError(f"h must be 1-D with length {j.shape[0]}; got shape {h.shape}.")
-        if not np.isfinite(h).all():
+        couplings.setflags(write=False)
+        return couplings
+
+    @staticmethod
+    def _coerce_h(h: npt.ArrayLike, n: int, dtype: FloatDType) -> FloatArray:
+        biases = ensure_float_array(h, dtype=dtype, copy=True)
+        if biases.ndim == 0:
+            biases = np.full(n, biases, dtype=dtype)
+        biases += 0.0  # Normalize -0.0 onto 0.0
+        if biases.shape != (n,):
+            raise ValueError(f"h must be a scalar or 1-D with length {n}; got shape {biases.shape}.")
+        if not np.isfinite(biases).all():
             raise ValueError("h must be finite; got NaN or infinity.")
+        biases.setflags(write=False)
+        return biases
+
+    @staticmethod
+    def _coerce_c(c: float) -> float:
+        return float(c) + 0.0  # Normalize -0.0 onto 0.0
 
     # ------------------------------------------------------------------
     # Properties
@@ -140,13 +141,17 @@ class Problem:
         h: npt.ArrayLike | None = None,
         c: float | None = None,
     ) -> Problem:
-        """Return a copy with the given fields replaced, the rest kept as-is."""
-        return Problem(
-            self.j if j is None else j,
-            self.h if h is None else h,
-            self.c if c is None else c,
-            self.dtype,
-        )
+        """Return a problem with the given fields replaced, the rest kept as-is."""
+        if j is not None:
+            return Problem(j, self.h if h is None else h, self.c if c is None else c, self.dtype)
+        if h is None and c is None:
+            return self
+        # Bypass __init__: the kept arrays are already validated and read-only.
+        problem = object.__new__(Problem)
+        object.__setattr__(problem, "j", self.j)
+        object.__setattr__(problem, "h", self.h if h is None else self._coerce_h(h, self.n, self.dtype))
+        object.__setattr__(problem, "c", self.c if c is None else self._coerce_c(c))
+        return problem
 
     # ------------------------------------------------------------------
     # Dunder methods
@@ -176,3 +181,4 @@ class Problem:
 
     def __repr__(self) -> str:
         return f"Problem(n={self.n}, dtype={self.dtype}, c={self.c:g}, fingerprint={self.fingerprint!r})"
+

@@ -4,6 +4,7 @@ import copy
 import dataclasses
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 from isinglib import Problem
@@ -75,6 +76,20 @@ def test_stored_arrays_are_read_only() -> None:
 def test_validate_rejects_bad_coupling(j: np.ndarray) -> None:
     with pytest.raises(ValueError):
         Problem(j=j)
+
+
+def test_scalar_bias_is_broadcast() -> None:
+    p = Problem(j=np.zeros((3, 3)), h=0.5)
+    assert np.array_equal(p.h, np.full(3, 0.5))
+    assert not p.h.flags.writeable
+
+
+def test_bias_defaults_to_zero() -> None:
+    assert np.array_equal(Problem(j=np.zeros((3, 3))).h, np.zeros(3))
+
+
+def test_scalar_bias_respects_dtype() -> None:
+    assert Problem(j=np.zeros((2, 2)), h=1.0, dtype=np.float32).h.dtype == np.float32
 
 
 def test_bias_length_must_match() -> None:
@@ -179,6 +194,51 @@ def test_replace_keeps_untouched_fields() -> None:
     q = p.replace(c=5.0)
     assert q.c == 5.0
     assert np.array_equal(q.j, p.j) and np.array_equal(q.h, p.h)
+
+
+def test_replace_shares_the_arrays_it_keeps() -> None:
+    p = Problem(j=np.array([[0.0, 1.0], [1.0, 0.0]]), h=np.array([1.0, 2.0]))
+    assert np.shares_memory(p.replace(h=0.5).j, p.j)
+    q = p.replace(c=5.0)
+    assert np.shares_memory(q.j, p.j) and np.shares_memory(q.h, p.h)
+
+
+def test_replace_covers_every_field() -> None:
+    """replace() bypasses __init__ and sets fields by hand: update it if this fails."""
+    assert [f.name for f in dataclasses.fields(Problem)] == ["j", "h", "c"]
+
+
+def test_replace_with_nothing_returns_self() -> None:
+    p = Problem(j=np.zeros((2, 2)))
+    assert p.replace() is p
+
+
+@pytest.mark.parametrize("h", [0.5, -0.0, [1.0, -2.0], np.array([0.25, 0.5])])
+def test_replacing_h_matches_building_from_scratch(h: npt.ArrayLike) -> None:
+    p = Problem(j=np.array([[0.0, 1.0], [1.0, 0.0]]), h=np.array([3.0, 4.0]), c=1.0, dtype=np.float32)
+    q = p.replace(h=h)
+    expected = Problem(p.j, h, p.c, p.dtype)
+    assert q == expected
+    assert q.h.dtype == expected.h.dtype
+    assert not q.h.flags.writeable
+    assert np.array_equal(np.signbit(q.h), np.signbit(expected.h))  # -0.0 normalized alike
+
+
+@pytest.mark.parametrize("h", [np.zeros(3), np.array([np.nan, 1.0]), np.array([np.inf, 1.0])])
+def test_replacing_h_rejects_what_the_constructor_rejects(h: np.ndarray) -> None:
+    p = Problem(j=np.zeros((2, 2)))
+    with pytest.raises(ValueError):
+        Problem(p.j, h)
+    with pytest.raises(ValueError):
+        p.replace(h=h)
+
+
+def test_replacing_j_revalidates_everything() -> None:
+    p = Problem(j=np.zeros((2, 2)), h=np.array([1.0, 2.0]))
+    with pytest.raises(ValueError, match="symmetric"):
+        p.replace(j=np.array([[0.0, 1.0], [2.0, 0.0]]))
+    with pytest.raises(ValueError, match="length 3"):
+        p.replace(j=np.zeros((3, 3)))  # kept h no longer fits the new n
 
 
 # ------------------------------------------------------------------

@@ -66,10 +66,35 @@ def test_fill_scalar() -> None:
     assert np.all(np.diag(j) == 0.0)
 
 
-def test_fill_callable() -> None:
+def test_fill_array_places_values_in_edge_order() -> None:
     t = Topology(3, [0, 1], [1, 2])
-    rng = np.random.default_rng(0)
-    j = t.fill(rng.standard_normal)
-    assert j.shape == (3, 3)
-    assert np.allclose(j, j.T)
+    j = t.fill([2.0, -3.0])
+    assert j[0, 1] == j[1, 0] == 2.0
+    assert j[1, 2] == j[2, 1] == -3.0
     assert np.all(np.diag(j) == 0.0)
+
+
+def test_fill_callable_is_handed_the_edge_count() -> None:
+    t = Topology(4, [0, 1, 2], [1, 2, 3])
+    j = t.fill(lambda m: np.arange(1.0, m + 1))
+    assert j[0, 1] == 1.0 and j[1, 2] == 2.0 and j[2, 3] == 3.0
+    assert np.allclose(j, j.T)
+
+
+def test_fill_accepts_a_numpy_generator_method() -> None:
+    j = Topology(3, [0, 1], [1, 2]).fill(np.random.default_rng(0).standard_normal)
+    assert j[0, 1] != 0.0 and j[1, 2] != 0.0
+
+
+def test_fill_rejects_a_callable_returning_the_wrong_length() -> None:
+    with pytest.raises(ValueError):
+        Topology(3, [0, 1], [1, 2]).fill(lambda m: np.zeros(m + 1))
+
+
+def test_fill_rejects_wrong_length() -> None:
+    with pytest.raises(ValueError):
+        Topology(3, [0, 1], [1, 2]).fill([1.0, 2.0, 3.0])
+
+
+def test_fill_respects_dtype() -> None:
+    assert Topology(3, [0, 1], [1, 2]).fill(1.0, dtype=np.float32).dtype == np.float32
