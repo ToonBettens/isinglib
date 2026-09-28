@@ -6,10 +6,12 @@ from isinglib.dtypes import DEFAULT_INDEX_DTYPE
 from isinglib.topology.topology import Topology
 
 __all__ = (
+    "chimera",
     "complete",
     "cycle",
     "grid",
     "king",
+    "mobius_ladder",
     "path",
     "ring",
     "star",
@@ -70,6 +72,47 @@ def ring(n: int, k: int = 2) -> Topology:
             edge_set.add((min(a, b), max(a, b)))
     edges = np.array(sorted(edge_set), dtype=DEFAULT_INDEX_DTYPE)
     return Topology(n, edges[:, 0], edges[:, 1])
+
+
+def mobius_ladder(n: int) -> Topology:
+    """Möbius ladder M_n: cycle C_n plus a rung from every node to its opposite.
+
+    Args:
+        n: Number of nodes (even, at least 4).
+    """
+    if n < 4 or n % 2 != 0:
+        raise ValueError("n must be even and at least 4.")
+    nodes = np.arange(n, dtype=DEFAULT_INDEX_DTYPE)
+    half = nodes[: n // 2]
+    src = np.concatenate([nodes, half])
+    dst = np.concatenate([(nodes + 1) % n, half + n // 2])
+    return Topology(n, src, dst)
+
+
+def chimera(m: int, n: int | None = None, t: int = 4) -> Topology:
+    """D-Wave Chimera graph C(m, n, t): an `m x n` grid of K_{t,t} unit cells.
+
+    Each cell has a vertical and a horizontal shore of `t` nodes, fully
+    connected to each other. Vertical nodes also couple to the same node in the
+    cells above and below, horizontal nodes to those left and right.
+
+    Args:
+        m: Number of cell rows.
+        n: Number of cell columns; defaults to `m`.
+        t: Nodes per shore.
+    """
+    n = m if n is None else n
+    if m <= 0 or n <= 0 or t <= 0:
+        raise ValueError("m, n and t must be positive.")
+    idx = np.arange(m * n * 2 * t, dtype=DEFAULT_INDEX_DTYPE).reshape(m, n, 2, t)
+    vertical, horizontal = idx[:, :, 0, :], idx[:, :, 1, :]
+
+    in_cell_src = np.repeat(vertical, t, axis=-1)
+    in_cell_dst = np.tile(horizontal, (1, 1, t))
+
+    src = np.concatenate([in_cell_src.ravel(), vertical[:-1].ravel(), horizontal[:, :-1].ravel()])
+    dst = np.concatenate([in_cell_dst.ravel(), vertical[1:].ravel(), horizontal[:, 1:].ravel()])
+    return Topology(m * n * 2 * t, src, dst)
 
 
 def grid(rows: int, cols: int, *, periodic: bool = False) -> Topology:

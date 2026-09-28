@@ -1,8 +1,21 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
-from isinglib.topology import complete, cycle, grid, king, path, ring, star
+from isinglib import Problem
+from isinglib.solvers import exhaustive
+from isinglib.topology import (
+    chimera,
+    complete,
+    cycle,
+    grid,
+    king,
+    mobius_ladder,
+    path,
+    ring,
+    star,
+)
 
 # ----------------------------------------------------------------
 # complete
@@ -74,3 +87,73 @@ def test_king_has_more_edges_than_grid() -> None:
     t_grid = grid(4, 4)
     t_king = king(4, 4)
     assert t_king.num_edges > t_grid.num_edges
+
+
+# ----------------------------------------------------------------
+# mobius_ladder
+# ----------------------------------------------------------------
+
+
+def test_mobius_ladder_is_cubic() -> None:
+    t = mobius_ladder(10)
+    assert t.num_edges == 15
+    assert np.all(t.degrees() == 3)
+
+
+def test_mobius_ladder_4_is_complete() -> None:
+    t, k4 = mobius_ladder(4), complete(4)
+    assert np.array_equal(t.src, k4.src)
+    assert np.array_equal(t.dst, k4.dst)
+
+
+@pytest.mark.parametrize("n", [2, 3, 7])
+def test_mobius_ladder_rejects_odd_or_small_n(n: int) -> None:
+    with pytest.raises(ValueError):
+        mobius_ladder(n)
+
+
+@pytest.mark.parametrize(("n", "ground_energy"), [(6, -9.0), (8, -8.0)])
+def test_mobius_ladder_antiferromagnet_ground_energy(n: int, ground_energy: float) -> None:
+    """Bipartite when n/2 is odd, so every bond is satisfied (-3n/2); otherwise
+    the twist frustrates the ladder and the max cut is 3n/2 - 2."""
+    p = Problem(mobius_ladder(n).fill(-1.0))
+    assert exhaustive(p).energy == pytest.approx(ground_energy)
+
+
+# ----------------------------------------------------------------
+# chimera
+# ----------------------------------------------------------------
+
+
+def test_chimera_matches_the_dwave_2000q_graph() -> None:
+    t = chimera(16)
+    assert t.n == 2048
+    assert t.num_edges == 6016
+
+
+def test_chimera_single_cell_is_complete_bipartite() -> None:
+    t = chimera(1, t=3)
+    assert t.num_edges == 9
+    assert np.all(t.degrees() == 3)
+
+
+def test_chimera_interior_degree_is_t_plus_2() -> None:
+    t = chimera(3, t=4)
+    # Cell (1, 1): its vertical and horizontal shores both have neighbours on both sides.
+    interior = np.arange(((1 * 3 + 1) * 2) * 4, ((1 * 3 + 1) * 2 + 2) * 4)
+    assert np.all(t.degrees()[interior] == 6)
+
+
+def test_chimera_couples_vertical_down_and_horizontal_right() -> None:
+    t = chimera(2, 2, t=2)
+    edges = set(zip(t.src.tolist(), t.dst.tolist(), strict=True))
+    # (0,0,0,1) = 1 couples to (1,0,0,1) = 9; (0,0,1,0) = 2 couples to (0,1,1,0) = 6.
+    assert (1, 9) in edges
+    assert (2, 6) in edges
+
+
+def test_chimera_antiferromagnet_is_unfrustrated() -> None:
+    """Chimera is bipartite, so every antiferromagnetic bond can be satisfied."""
+    topo = chimera(1, 2, t=2)
+    p = Problem(topo.fill(-1.0))
+    assert exhaustive(p).energy == pytest.approx(-topo.num_edges)
