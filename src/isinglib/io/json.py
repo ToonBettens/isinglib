@@ -96,7 +96,7 @@ def write(
 
 
 def _compact_edges(text: str, indent: int) -> str:
-    """Put each `[src, dst, weight]` on one line. """
+    """Put each `[src, dst, weight]` on one line."""
     close = "\n" + " " * indent + "]"
     start = text.index('"edges": [')
     end = text.index(close, start) + len(close)

@@ -84,10 +84,8 @@ def simulated_annealing(
     best_spins = s.copy()
     n_accepted = 0
 
-    if schedule == "geometric":
-        temps = np.geomspace(T_start, T_end, n_sweeps)
-    else:
-        temps = np.linspace(T_start, T_end, n_sweeps)
+    spacing = np.geomspace if schedule == "geometric" else np.linspace
+    temps = spacing(T_start, T_end, n_sweeps)
 
     flips = np.empty(n_sweeps * n, dtype=DEFAULT_INDEX_DTYPE) if keep_flips else None
     energy_trace = np.empty(n_sweeps * n, dtype=problem.dtype) if keep_energy_trace else None

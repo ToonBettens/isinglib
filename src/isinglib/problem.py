@@ -162,14 +162,10 @@ class Problem:
         return hash(self.fingerprint)
 
     def __eq__(self, other: object) -> bool:
-        """Compare by content only: `j`, `h`, `c`, ignoring dtype. """
+        """Compare by content only: `j`, `h`, `c`, ignoring dtype."""
         if not isinstance(other, Problem):
             return NotImplemented
-        return (
-            self.c == other.c
-            and np.array_equal(self.j, other.j)
-            and np.array_equal(self.h, other.h)
-        )
+        return self.c == other.c and np.array_equal(self.j, other.j) and np.array_equal(self.h, other.h)
 
     def __copy__(self) -> Problem:
         """Immutable, so a copy is the object itself."""
@@ -181,4 +177,3 @@ class Problem:
 
     def __repr__(self) -> str:
         return f"Problem(n={self.n}, dtype={self.dtype}, c={self.c:g}, fingerprint={self.fingerprint!r})"
-

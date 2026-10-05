@@ -7,7 +7,6 @@ from isinglib.io import hdf5
 h5py = pytest.importorskip("h5py")
 
 
-
 @pytest.mark.parametrize("layout", ["sparse", "dense"])
 def test_round_trip_explicit_layout(tmp_path, sparse_problem, layout) -> None:
     p = sparse_problem

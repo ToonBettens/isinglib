@@ -32,10 +32,10 @@ def test_encode_matches_the_qubo_objective() -> None:
 @pytest.mark.parametrize(
     "q",
     [
-        np.array([[1.0, 4.0], [0.0, 2.0]]),   # upper triangular
-        np.array([[1.0, 0.0], [4.0, 2.0]]),   # lower triangular
-        np.array([[1.0, 2.0], [2.0, 2.0]]),   # symmetric
-        np.array([[1.0, 3.0], [1.0, 2.0]]),   # split across both triangles
+        np.array([[1.0, 4.0], [0.0, 2.0]]),  # upper triangular
+        np.array([[1.0, 0.0], [4.0, 2.0]]),  # lower triangular
+        np.array([[1.0, 2.0], [2.0, 2.0]]),  # symmetric
+        np.array([[1.0, 3.0], [1.0, 2.0]]),  # split across both triangles
     ],
 )
 def test_encode_is_independent_of_how_q_is_split(q: np.ndarray) -> None:

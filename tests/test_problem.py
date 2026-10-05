@@ -68,9 +68,9 @@ def test_stored_arrays_are_read_only() -> None:
 @pytest.mark.parametrize(
     "j",
     [
-        np.array([[0.0, 1.0, 0.0]]),            # not square
-        np.array([[0.0, 1.0], [2.0, 0.0]]),     # not symmetric
-        np.array([[1.0, 0.0], [0.0, 0.0]]),     # nonzero diagonal
+        np.array([[0.0, 1.0, 0.0]]),  # not square
+        np.array([[0.0, 1.0], [2.0, 0.0]]),  # not symmetric
+        np.array([[1.0, 0.0], [0.0, 0.0]]),  # nonzero diagonal
     ],
 )
 def test_validate_rejects_bad_coupling(j: np.ndarray) -> None:
@@ -283,11 +283,11 @@ def test_repr_names_the_shape_and_fingerprint() -> None:
 @pytest.mark.parametrize(
     ("kwargs", "expected_dtype"),
     [
-        ({"j": [[0.0, 1.0], [1.0, 0.0]]}, np.float64),                    # nested lists
-        ({"j": np.array([[0, 1], [1, 0]])}, np.float64),                  # int array
-        ({"j": np.zeros((2, 2)), "h": [1.0, 2.0]}, np.float64),           # list bias
-        ({"j": np.zeros((2, 2)), "c": 3}, np.float64),                    # int offset
-        ({"j": np.zeros((2, 2)), "dtype": "float32"}, np.float32),        # dtype by name
+        ({"j": [[0.0, 1.0], [1.0, 0.0]]}, np.float64),  # nested lists
+        ({"j": np.array([[0, 1], [1, 0]])}, np.float64),  # int array
+        ({"j": np.zeros((2, 2)), "h": [1.0, 2.0]}, np.float64),  # list bias
+        ({"j": np.zeros((2, 2)), "c": 3}, np.float64),  # int offset
+        ({"j": np.zeros((2, 2)), "dtype": "float32"}, np.float32),  # dtype by name
     ],
 )
 def test_accepts_any_array_like_input(kwargs: dict, expected_dtype: type) -> None:
@@ -309,9 +309,9 @@ def test_degenerate_sizes_are_valid(n: int) -> None:
 @pytest.mark.parametrize(
     "j",
     [
-        "not a matrix",                       # not array-like at all
-        [[0.0, 1.0], [1.0]],                  # ragged
-        np.zeros((2, 2), dtype=complex),      # would silently lose the imaginary part
+        "not a matrix",  # not array-like at all
+        [[0.0, 1.0], [1.0]],  # ragged
+        np.zeros((2, 2), dtype=complex),  # would silently lose the imaginary part
     ],
 )
 def test_rejects_uncoercible_input(j: object) -> None:

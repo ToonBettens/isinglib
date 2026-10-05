@@ -39,9 +39,7 @@ def read(path: str | Path) -> Problem:
     return from_record(record)
 
 
-def write(
-    problem: Problem, path: str | Path, *, layout: LayoutOptions = "auto", overwrite: bool = False
-) -> None:
+def write(problem: Problem, path: str | Path, *, layout: LayoutOptions = "auto", overwrite: bool = False) -> None:
     """Serialise a Problem to a `.npz` file, at exactly `path`.
 
     Args:

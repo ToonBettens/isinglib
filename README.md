@@ -97,7 +97,8 @@ assert np.array_equal(solution.spins, state)
 
 ```bash
 uv sync --all-extras
-uv run pytest
+uv run ruff format
 uv run ruff check
 uv run ty check
+uv run pytest
 ```

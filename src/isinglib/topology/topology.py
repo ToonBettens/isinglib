@@ -131,7 +131,8 @@ class Topology:
         """
         s, d = self.edges()
         if callable(values):
-            values = cast(Callable[[int], npt.ArrayLike], values)(self.num_edges)  # recover signature from ArrayLike union
+            # Recover the signature, which ty cannot narrow out of the ArrayLike union.
+            values = cast(Callable[[int], npt.ArrayLike], values)(self.num_edges)
         weights = ensure_float_array(values, dtype)
         if weights.ndim == 0:
             weights = np.full(self.num_edges, weights)

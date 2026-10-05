@@ -29,9 +29,7 @@ def _backend_for(path: str | Path, format: Format | None) -> ModuleType:
         try:
             return _BACKENDS[format]
         except KeyError:
-            raise ValueError(
-                f"Unknown format {format!r}; expected one of {sorted(_BACKENDS)}."
-            ) from None
+            raise ValueError(f"Unknown format {format!r}; expected one of {sorted(_BACKENDS)}.") from None
 
     suffix = Path(path).suffix.lower()
     try:
@@ -54,9 +52,7 @@ def read(path: str | Path, *, format: Format | None = None, **kwargs: Any) -> Pr
     return _backend_for(path, format).read(path, **kwargs)
 
 
-def write(
-    problem: Problem, path: str | Path, *, format: Format | None = None, **kwargs: Any
-) -> None:
+def write(problem: Problem, path: str | Path, *, format: Format | None = None, **kwargs: Any) -> None:
     """Write a Problem, choosing the backend from the file suffix.
 
     Args:

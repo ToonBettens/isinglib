@@ -63,7 +63,7 @@ def check_version(version: int | None) -> None:
             f"({FORMAT_VERSION}); upgrade isinglib to read it."
         )
     if version < 1:
-        raise ValueError( f"Invalid format_version {version!r}; expected a positive integer.")
+        raise ValueError(f"Invalid format_version {version!r}; expected a positive integer.")
 
 
 def choose_layout(problem: Problem) -> Layout:
@@ -83,7 +83,7 @@ def to_record(problem: Problem, layout: LayoutOptions = "auto") -> Record:
     if layout == "auto":
         layout = choose_layout(problem)
     if layout not in ("sparse", "dense"):
-        raise ValueError( f"Unknown layout {layout!r}; expected 'auto', 'sparse', or 'dense'.")
+        raise ValueError(f"Unknown layout {layout!r}; expected 'auto', 'sparse', or 'dense'.")
 
     return Record(
         j=_to_edges(problem) if layout == "sparse" else problem.j,

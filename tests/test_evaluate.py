@@ -54,9 +54,7 @@ def test_energy_matches_the_hamiltonian(case: tuple[Problem, np.ndarray]) -> Non
 def test_energy_reuses_a_supplied_effective_field(case: tuple[Problem, np.ndarray]) -> None:
     p, s = case
     h_eff = _evaluate.effective_field(p.j, p.h, s)
-    assert _evaluate.energy(p.j, p.h, p.c, s, h_eff=h_eff) == pytest.approx(
-        _evaluate.energy(p.j, p.h, p.c, s)
-    )
+    assert _evaluate.energy(p.j, p.h, p.c, s, h_eff=h_eff) == pytest.approx(_evaluate.energy(p.j, p.h, p.c, s))
 
 
 # ------------------------------------------------------------------

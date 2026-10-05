@@ -21,9 +21,8 @@ def _import_h5py() -> Any:
         import h5py
     except ImportError as e:
         raise ImportError(
-                    "The hdf5 backend needs h5py, which is an optional dependency. "
-                    "Install it with: pip install 'isinglib[io]'"
-                ) from e
+            "The hdf5 backend needs h5py, which is an optional dependency. Install it with: pip install 'isinglib[io]'"
+        ) from e
     return h5py
 
 
@@ -78,9 +77,7 @@ def write(
     with h5py.File(path, "a") as f:
         if key in f:
             if not overwrite:
-                raise FileExistsError(
-                    f"Key {key!r} already exists in {path}; pass overwrite=True to replace it."
-                )
+                raise FileExistsError(f"Key {key!r} already exists in {path}; pass overwrite=True to replace it.")
             del f[key]
         grp = f.create_group(key)
         if isinstance(record.j, tuple):
