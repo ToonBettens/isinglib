@@ -75,6 +75,31 @@ def test_decode_maps_spins_to_binary() -> None:
 
 
 # ------------------------------------------------------------------
+# objective
+# ------------------------------------------------------------------
+
+
+def test_objective_matches_the_definition() -> None:
+    q = np.array([[1.0, -2.0, 0.5], [0.0, 3.0, 1.0], [0.0, 0.0, -1.0]])
+    x = np.array([1.0, 1.0, 0.0])
+    assert qubo.objective(q, x, offset=2.0) == pytest.approx(1.0 - 2.0 + 3.0 + 2.0)
+
+
+def test_objective_equals_the_encoded_energy() -> None:
+    rng = np.random.default_rng(5)
+    q = rng.standard_normal((4, 4))
+    p = qubo.encode(q, offset=-0.5)
+    for bits in itertools.product((-1.0, 1.0), repeat=4):
+        s = np.array(bits)
+        assert qubo.objective(q, qubo.decode(s), offset=-0.5) == pytest.approx(p.energy(s))
+
+
+def test_objective_rejects_wrong_length() -> None:
+    with pytest.raises(ValueError, match="x"):
+        qubo.objective(np.eye(3), [1.0, 0.0])
+
+
+# ------------------------------------------------------------------
 # Round trip
 # ------------------------------------------------------------------
 

@@ -6,7 +6,7 @@ import numpy.typing as npt
 from isinglib.dtypes import FloatArray, ensure_float_array, ensure_float_dtype
 from isinglib.problem import Problem
 
-__all__ = ("decode", "encode", "from_ising")
+__all__ = ("decode", "encode", "from_ising", "objective")
 
 
 def encode(
@@ -65,3 +65,20 @@ def from_ising(problem: Problem) -> tuple[FloatArray, float]:
 def decode(spins: npt.ArrayLike) -> FloatArray:
     """Decode a spin vector back to QUBO variables `x ∈ {0, 1}ⁿ`."""
     return (ensure_float_array(spins) + 1.0) / 2.0
+
+
+def objective(q: npt.ArrayLike, x: npt.ArrayLike, offset: float = 0.0) -> float:
+    """QUBO objective `xᵀQx + offset`, with `x ∈ {0, 1}ⁿ`.
+
+    Equals `problem.energy(spins)` for `problem = encode(q, offset)` and `x = decode(spins)`.
+
+    Args:
+        q: (n, n) QUBO matrix, in any of the representations `encode` accepts.
+        x: (n,) binary vector.
+        offset: Additive constant in the QUBO objective.
+    """
+    q_arr = ensure_float_array(q)
+    x_arr = ensure_float_array(x)
+    if x_arr.shape != (q_arr.shape[0],):
+        raise ValueError(f"x must have shape ({q_arr.shape[0]},), got {x_arr.shape}.")
+    return float(x_arr @ q_arr @ x_arr) + float(offset)
