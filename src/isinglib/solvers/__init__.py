@@ -1,6 +1,6 @@
 """Solvers: plain functions, `Problem` in, `Solution` out."""
 
-from isinglib.solvers.base import Solution
+from isinglib.solvers.base import Solution, run_batch
 from isinglib.solvers.branch_and_bound import branch_and_bound
 from isinglib.solvers.exhaustive import exhaustive
 from isinglib.solvers.first_improvement import first_improvement
@@ -16,6 +16,7 @@ __all__ = (
     "exhaustive",
     "first_improvement",
     "parallel_tempering",
+    "run_batch",
     "simulated_annealing",
     "simulated_bifurcation",
     "steepest_descent",
