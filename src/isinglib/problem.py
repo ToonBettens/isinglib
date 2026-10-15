@@ -134,6 +134,17 @@ class Problem:
         """Return `E(s) = -0.5 sᵀ j s - hᵀ s + c` for spin vector `s`."""
         return energy(self.j, self.h, self.c, np.asarray(s, dtype=self.dtype))
 
+    def normalized_residual(self, energy: float, reference: float) -> float:
+        """Return `ε = (E - E_ref) / (c - E_ref)`: how far `energy` is from `reference`.
+
+        Args:
+            energy: The energy to measure.
+            reference: The energy to measure from, typically the best known. Must lie below `c`.
+        """
+        if not reference < self.c:
+            raise ValueError(f"reference must lie below c = {self.c:g}, the mean energy; got {reference:g}.")
+        return (float(energy) - reference) / (self.c - reference)
+
     def replace(
         self,
         *,

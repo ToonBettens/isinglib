@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import dataclasses
+import itertools
 
 import numpy as np
 import numpy.typing as npt
@@ -187,6 +188,35 @@ def test_energy_matches_explicit_formula() -> None:
 def test_energy_accepts_any_array_like() -> None:
     p = Problem(j=np.array([[0.0, 1.0], [1.0, 0.0]]))
     assert p.energy([1.0, -1.0]) == p.energy(np.array([1.0, -1.0]))
+
+
+def test_c_is_the_mean_energy_over_all_states() -> None:
+    rng = np.random.default_rng(0)
+    j = rng.normal(size=(6, 6))
+    p = Problem(j=np.triu(j, 1) + np.triu(j, 1).T, h=rng.normal(size=6), c=1.5)
+    states = np.array(list(itertools.product([-1.0, 1.0], repeat=6)))
+    assert np.mean([p.energy(s) for s in states]) == pytest.approx(p.c)
+
+
+def test_normalized_residual_is_zero_at_reference_and_one_at_c() -> None:
+    p = Problem(j=np.array([[0.0, 1.0], [1.0, 0.0]]), c=2.0)
+    assert p.normalized_residual(-3.0, -3.0) == 0.0
+    assert p.normalized_residual(2.0, -3.0) == 1.0
+    assert p.normalized_residual(-1.0, -3.0) == pytest.approx(0.4)
+
+
+def test_normalized_residual_ignores_scale_and_offset() -> None:
+    p = Problem(j=np.array([[0.0, 1.0], [1.0, 0.0]]), h=np.array([0.5, -0.5]), c=2.0)
+    a, b = 3.0, -7.0
+    q = Problem(j=a * p.j, h=a * p.h, c=a * p.c + b)
+    assert q.normalized_residual(a * 0.5 + b, a * -1.0 + b) == pytest.approx(p.normalized_residual(0.5, -1.0))
+
+
+@pytest.mark.parametrize("reference", [1.0, 2.0])
+def test_normalized_residual_rejects_a_reference_not_below_c(reference: float) -> None:
+    p = Problem(j=np.array([[0.0, 1.0], [1.0, 0.0]]), c=1.0)
+    with pytest.raises(ValueError, match="below c"):
+        p.normalized_residual(0.0, reference)
 
 
 def test_replace_keeps_untouched_fields() -> None:
