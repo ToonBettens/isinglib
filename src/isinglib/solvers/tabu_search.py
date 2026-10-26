@@ -97,7 +97,7 @@ def tabu_search(
         h_eff += spin_flip_effective_field_update(j, s, best_k)
         s[best_k] = -s[best_k]
         curr_energy += best_delta
-        tabu_until[best_k] = step + tabu_tenure
+        tabu_until[best_k] = step + tabu_tenure + 1  # tabu at steps step + 1 ... step + tabu_tenure
 
         if curr_energy < best_energy:
             best_energy = curr_energy
