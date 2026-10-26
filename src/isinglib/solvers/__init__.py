@@ -6,7 +6,7 @@ from isinglib.solvers.exhaustive import exhaustive
 from isinglib.solvers.first_improvement import first_improvement
 from isinglib.solvers.parallel_tempering import parallel_tempering
 from isinglib.solvers.simulated_annealing import simulated_annealing
-from isinglib.solvers.simulated_bifurcation import simulated_bifurcation
+from isinglib.solvers.simulated_bifurcation import max_stable_dt, simulated_bifurcation
 from isinglib.solvers.steepest_descent import steepest_descent
 from isinglib.solvers.tabu_search import tabu_search
 
@@ -15,6 +15,7 @@ __all__ = (
     "branch_and_bound",
     "exhaustive",
     "first_improvement",
+    "max_stable_dt",
     "parallel_tempering",
     "run_batch",
     "simulated_annealing",

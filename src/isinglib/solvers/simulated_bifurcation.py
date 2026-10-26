@@ -8,7 +8,9 @@ from isinglib._evaluate import energy
 from isinglib.problem import Problem
 from isinglib.solvers.base import Solution
 
-__all__ = ("simulated_bifurcation",)
+__all__ = ("max_stable_dt", "simulated_bifurcation")
+
+_A0 = 1.0  # final pump amplitude
 
 
 def simulated_bifurcation(
@@ -31,10 +33,21 @@ def simulated_bifurcation(
     `"ballistic"` couples through the positions themselves.
     `"discrete"` couples through their signs.
 
+    The force on each position is `c0 * (j @ x + h)`. In the ballistic variant
+    `j @ x` grows with the positions' amplitude while `h` does not, so early in
+    the ramp `h` weighs more against the couplings than it does in the energy.
+    To avoid it, fold `h` into couplings to an auxiliary spin before solving.
+    The discrete variant has no such mismatch.
+
+    Too large a `dt` makes the integration unstable: each step overshoots the
+    fastest oscillation, the overshoot grows, and the positions slam into the
+    walls together. How large is too large depends on the problem.
+    `max_stable_dt` computes the limit for ballistic SB.
+
     Args:
         problem: The problem to solve.
         n_steps: Number of time steps.
-        dt: Time step.
+        dt: Time step. The default, 1.25, is the reference value.
         variant: `"ballistic"` or `"discrete"`.
         c0: Coupling strength. Defaults to `0.5 * sqrt(n - 1) / ||j||_F`.
         rng: Random generator or seed.
@@ -58,11 +71,8 @@ def simulated_bifurcation(
     _rng = np.random.default_rng(rng)
     j, h, c, n = problem.j, problem.h, problem.c, problem.n
 
-    if c0 is None:
-        norm = float(np.sqrt(np.sum(j * j)))
-        c0 = 0.5 * np.sqrt(max(n - 1, 1)) / norm if norm > 0 else 0.5
-
-    a0 = 1.0
+    c0 = _default_c0(j) if c0 is None else c0
+    a0 = _A0
     x = _rng.uniform(-0.1, 0.1, size=n)
     y = _rng.uniform(-0.1, 0.1, size=n)
     discrete = variant == "discrete"
@@ -84,3 +94,38 @@ def simulated_bifurcation(
         energy=energy(j, h, c, spins),
         elapsed_s=time.perf_counter() - t0,
     )
+
+
+def max_stable_dt(problem: Problem, *, c0: float | None = None) -> float:
+    """The largest stable time step of ballistic simulated bifurcation on `problem`.
+
+    Each step is symplectic Euler, stable while `dt * omega < 2` for the
+    fastest oscillation. That is at the start of the pump ramp, in the pattern
+    the couplings oppose most: the eigenvector of the most negative eigenvalue
+    `lambda_min` of `j`, with `omega**2 = a0 * (a0 + c0 * |lambda_min|)`.
+
+    The reference `c0` assumes couplings of mixed signs, which put
+    `c0 * |lambda_min|` near 1 and the limit near 1.41, above the default
+    `dt = 1.25`. Where the couplings share a sign, far stiffer states occur
+    and the limit drops below 1.25, making the reference `dt` unstable.
+
+    At the limit itself that oscillation no longer decays. It is recommended
+    to stay below it, e.g. at 0.9 times the limit.
+
+    The discrete variant couples through signs, a bounded force, and fails
+    another way: the whole state bounces from wall to wall. That has no simple
+    bound. As an empiric rule, use 0.8 times the ballistic maximum stable `dt`.
+
+    Args:
+        problem: The problem to solve.
+        c0: Coupling strength, as in `simulated_bifurcation` if not given.
+    """
+    c0 = _default_c0(problem.j) if c0 is None else c0
+    lambda_min = float(np.linalg.eigvalsh(problem.j)[0]) if problem.n else 0.0
+    return float(2.0 / np.sqrt(_A0 * (_A0 + c0 * max(-lambda_min, 0.0))))
+
+
+def _default_c0(j: np.ndarray) -> float:
+    """`0.5 * sqrt(n - 1) / ||j||_F`: puts the couplings' spectrum near `[-1, 1]` when their signs are mixed."""
+    norm = float(np.sqrt(np.sum(j * j)))
+    return 0.5 * np.sqrt(max(j.shape[0] - 1, 1)) / norm if norm > 0 else 0.5
