@@ -1,96 +1,112 @@
 # isinglib
 
-A pure-Python library for research on Ising machines It provides problem
-generation and a set of solvers over a single immutable `Problem` type, so that
-different solving approaches (combinatorial and continuous solvers) can be
-compared on the same footing.
-
-Currently implemented: the `Problem` and `Topology` types, graph generators,
-and nine solvers: exact (exhaustive, branch and bound), local search (steepest
-descent, first improvement), stochastic search (simulated annealing, tabu
-search, parallel tempering) and simulated bifurcation (ballistic, discrete).
-Continuous solvers, benchmark loaders, and landscape/result analysis tools are
-planned but not yet built.
-
-## Energy convention
+A pure-Python library for research on Ising machines. Every instance is one
+immutable `Problem`, and every solver is a plain function taking a `Problem`
+and returning a `Solution`.
 
 ```
-E(s) = -0.5 * s^T j s - h^T s + c
+E(s) = -0.5 sᵀ j s - hᵀ s + c,    s ∈ {-1, +1}ⁿ
 ```
 
-`j` is the symmetric, zero-diagonal coupling matrix; `h` is the bias vector;
-`c` is a scalar offset. Spin states take values in {-1, +1}.
+`j` is symmetric with a zero diagonal, `h` holds the fields, and `c` is an offset: the
+mean energy over random states.
 
-## Examples
+| Module | What it holds |
+|---|---|
+| `Problem` | an instance `(j, h, c)`: energy, content fingerprint, normalized residual |
+| `topology` | complete, star, path, cycle, ring, Möbius ladder, chimera; grid and king lattices in any dimension, open or periodic; Erdős–Rényi, Barabási–Albert, Watts–Strogatz |
+| `generators` | couplings on a topology: constant, uniform, Gaussian, ±1, a choice of values; Sherrington–Kirkpatrick and Edwards–Anderson spin glasses; Mattis planted ground states |
+| `solvers` | exact: exhaustive, branch and bound · local: steepest descent, first improvement · stochastic: simulated annealing, parallel tempering, tabu search · dynamical: simulated bifurcation, ballistic and discrete · `run_batch` for repeated runs |
+| `mappings` | max-cut and QUBO to and from Ising; an auxiliary spin that folds `h` into couplings |
+| `io` | JSON, NPZ and HDF5 behind one `read` / `write` |
 
-Generators turn parameters, usually a `Topology`, into a `Problem`. Solvers
-are plain functions: `Problem` in, `Solution` out.
+Literature benchmarks ship separately in
+[isinglib-benchmarks](https://github.com/ToonBettens/isinglib-benchmarks): BiqMac and
+G-set, with their best known energies and, where known, the states that reach them.
+
+## A tour
+
+**Build an instance and solve it four ways.** Each solver reports what it found and
+how long it took, plus its own diagnostics.
+
+```python
+from isinglib import generators
+from isinglib.solvers import parallel_tempering, simulated_annealing, simulated_bifurcation, tabu_search
+
+problem = generators.edwards_anderson(6, rng=0)  # 3-D ±1 spin glass, 216 spins
+for solver in (simulated_annealing, parallel_tempering, tabu_search, simulated_bifurcation):
+    solution = solver(problem, rng=0)
+    print(f"{solution.solver:22} E = {solution.energy:7.1f}  in {solution.elapsed_s:.2f} s")
+```
+
+**Repeat runs** on independent random streams, reproducible from one seed:
+
+```python
+from isinglib.solvers import run_batch
+
+runs = run_batch(simulated_annealing, problem, 20, rng=0, n_sweeps=300)
+energies = [run.energy for run in runs]
+```
+
+**Check a solver against a known answer.** The Mattis model plants a ground state, and
+the exact solvers confirm it:
 
 ```python
 import numpy as np
-from isinglib import Problem, generators
-from isinglib.solvers import exhaustive, simulated_annealing, tabu_search
+from isinglib.solvers import branch_and_bound
 from isinglib.states import random_spins
-from isinglib.topology import erdos_renyi, grid, king
+from isinglib.topology import erdos_renyi
 
-rng = np.random.default_rng(0)
+state = random_spins(20, rng=1)
+planted = generators.mattis(erdos_renyi(20, p=0.3, rng=1), state).replace(h=0.1 * state)
+assert np.array_equal(branch_and_bound(planted).spins, state)
 ```
 
-**The Sherrington-Kirkpatrick model**, the canonical spin glass:
+**Measure quality on a literature benchmark.** The normalized residual is 0 at the best
+known energy and 1 at a random state, so it means the same on every instance, unlike
+the usual gap, which changes when a constant is added to the energy:
 
 ```python
-problem = generators.sherrington_kirkpatrick(100, rng=rng)
-solution = simulated_annealing(problem, rng=rng)
+import isinglib_benchmarks as bm
+
+g05 = bm.load("biqmac", "rudy/g05_100.0")  # dense max-cut, proven optimum
+best = bm.best_energy("biqmac", "rudy/g05_100.0")
+residual = g05.normalized_residual(tabu_search(g05, rng=0).energy, best)
 ```
 
-**Random couplings on a random graph**:
+**Solve other problem classes.** Mappings encode them exactly, so energies carry over:
 
 ```python
-problem = generators.uniform(erdos_renyi(20, p=0.3, rng=rng), -10.0, 10.0, rng=rng)
-solution = simulated_annealing(problem, rng=rng)
+from isinglib.mappings import maxcut, qubo
+
+rng = np.random.default_rng(2)
+w = np.triu(rng.integers(0, 2, (30, 30)), 1).astype(float)
+w += w.T  # an unweighted graph
+solution = tabu_search(maxcut.encode(w), rng=0)
+assert maxcut.objective(w, maxcut.decode(solution.spins)) == -solution.energy  # the cut size
+
+q = np.triu(rng.normal(size=(12, 12)))  # minimize xᵀQx over x ∈ {0, 1}¹²
+x = qubo.decode(branch_and_bound(qubo.encode(q)).spins)
 ```
 
-**The 3-D Edwards-Anderson spin glass**, the classic hard short-range benchmark:
+**Know a solver's limits.** Simulated bifurcation's reference step `dt = 1.25` is
+unstable where the couplings share a sign, as in unweighted max-cut;
+`max_stable_dt` computes each instance's limit from its spectrum:
 
 ```python
-problem = generators.edwards_anderson(6, rng=rng)
-solution = simulated_annealing(problem, rng=rng)
+from isinglib.solvers import max_stable_dt
+
+limit = max_stable_dt(g05)  # 0.94: below the default
+solution = simulated_bifurcation(g05, dt=0.9 * limit, rng=0)
 ```
 
-**A ±J spin glass on a torus, with a random bias**:
+**Store instances** in a portable format; the extension picks the backend:
 
 ```python
-lattice = grid(4, 4, periodic=True)
-problem = generators.pm_one(lattice, rng=rng).replace(h=rng.normal(0.0, 0.1, lattice.n))
-solution = tabu_search(problem, rng=rng)
-```
+from isinglib import io
 
-**A ferromagnet with a uniform bias**:
-
-```python
-problem = generators.constant(king(3, 3), 1.0).replace(h=0.5)
-solution = exhaustive(problem)
-```
-
-**Custom couplings**: `Topology.fill` takes a scalar, one value per edge, or
-a callable handed the edge count, and `Problem` takes the arrays directly:
-
-```python
-problem = Problem(grid(3, 3).fill(lambda m: rng.exponential(1.0, m)), h=0.1)
-lattice = grid(3, 3)
-problem = Problem(lattice.fill(np.linspace(0.1, 1.0, lattice.num_edges)))
-```
-
-**Plant a known ground state** with the Mattis model, whose couplings all point
-towards a chosen state, for checking a solver against the right answer:
-
-```python
-topology = erdos_renyi(9, p=0.4, rng=rng)
-state = random_spins(9, rng=rng)
-problem = generators.mattis(topology, state)
-problem = problem.replace(h=0.1 * state)  # makes `state` the unique ground state
-solution = exhaustive(problem)
-assert np.array_equal(solution.spins, state)
+io.write(problem, "ea6.npz")
+assert io.read("ea6.npz") == problem  # problems compare by content
 ```
 
 ## Development
