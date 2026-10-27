@@ -16,11 +16,10 @@ from isinglib import Problem
 from isinglib.solvers import (
     branch_and_bound,
     exhaustive,
-    first_improvement,
+    local_search,
     parallel_tempering,
     simulated_annealing,
     simulated_bifurcation,
-    steepest_descent,
     tabu_search,
 )
 
@@ -29,8 +28,9 @@ from isinglib.solvers import (
 SOLVERS: list[tuple[str, Callable[..., Any], dict[str, Any], bool]] = [
     ("exhaustive", exhaustive, {}, True),
     ("branch_and_bound", branch_and_bound, {}, True),
-    ("steepest_descent", steepest_descent, {"rng": 0}, False),
-    ("first_improvement", first_improvement, {"rng": 0}, False),
+    ("local_search_steepest", local_search, {"rng": 0}, False),
+    ("local_search_random", local_search, {"rng": 0, "rule": "random"}, False),
+    ("local_search_first", local_search, {"rng": 0, "rule": "first"}, False),
     ("simulated_annealing", simulated_annealing, {"rng": 0}, False),
     ("tabu_search", tabu_search, {"rng": 0}, False),
     ("parallel_tempering", parallel_tempering, {"rng": 0}, False),

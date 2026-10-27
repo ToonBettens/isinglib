@@ -11,14 +11,16 @@ E(s) = -0.5 sᵀ j s - hᵀ s + c,    s ∈ {-1, +1}ⁿ
 `j` is symmetric with a zero diagonal, `h` holds the fields, and `c` is an offset: the
 mean energy over random states.
 
-| Module | What it holds |
-|---|---|
-| `Problem` | an instance `(j, h, c)`: energy, content fingerprint, normalized residual |
-| `topology` | complete, star, path, cycle, ring, Möbius ladder, chimera; grid and king lattices in any dimension, open or periodic; Erdős–Rényi, Barabási–Albert, Watts–Strogatz |
-| `generators` | couplings on a topology: constant, uniform, Gaussian, ±1, a choice of values; Sherrington–Kirkpatrick and Edwards–Anderson spin glasses; Mattis planted ground states |
-| `solvers` | exact: exhaustive, branch and bound · local: steepest descent, first improvement · stochastic: simulated annealing, parallel tempering, tabu search · dynamical: simulated bifurcation, ballistic and discrete · `run_batch` for repeated runs |
-| `mappings` | max-cut and QUBO to and from Ising; an auxiliary spin that folds `h` into couplings |
-| `io` | JSON, NPZ and HDF5 behind one `read` / `write` |
+- **`Problem`** is an instance: it evaluates energies, compares by content, and measures
+  how close an energy is to the best known one.
+- **`topology`** builds the graph of which spins couple: regular, lattice or random.
+- **`generators`** put couplings on such a graph and return a `Problem`, from simple
+  distributions to the standard spin glasses and instances with a planted ground state.
+- **`solvers`** find low-energy states: exact searches for small instances, local search,
+  stochastic heuristics and dynamical (continuous) machines, all with one calling convention.
+- **`mappings`** encode other problems, such as max-cut and QUBO, as Ising problems
+  exactly, and decode the solutions.
+- **`io`** stores problems on disk in a portable format.
 
 Literature benchmarks ship separately in
 [isinglib-benchmarks](https://github.com/ToonBettens/isinglib-benchmarks): BiqMac and

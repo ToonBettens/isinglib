@@ -3,23 +3,21 @@
 from isinglib.solvers.base import Solution, run_batch
 from isinglib.solvers.branch_and_bound import branch_and_bound
 from isinglib.solvers.exhaustive import exhaustive
-from isinglib.solvers.first_improvement import first_improvement
+from isinglib.solvers.local_search import local_search
 from isinglib.solvers.parallel_tempering import parallel_tempering
 from isinglib.solvers.simulated_annealing import simulated_annealing
 from isinglib.solvers.simulated_bifurcation import max_stable_dt, simulated_bifurcation
-from isinglib.solvers.steepest_descent import steepest_descent
 from isinglib.solvers.tabu_search import tabu_search
 
 __all__ = (
     "Solution",
     "branch_and_bound",
     "exhaustive",
-    "first_improvement",
+    "local_search",
     "max_stable_dt",
     "parallel_tempering",
     "run_batch",
     "simulated_annealing",
     "simulated_bifurcation",
-    "steepest_descent",
     "tabu_search",
 )

@@ -16,35 +16,47 @@ from isinglib.problem import Problem
 from isinglib.solvers.base import Solution
 from isinglib.states import ensure_spins, random_spins
 
-__all__ = ("steepest_descent",)
+__all__ = ("local_search",)
+
+_RULES = ("steepest", "random", "first")
 
 
-def steepest_descent(
+def local_search(
     problem: Problem,
     *,
+    rule: str = "steepest",
     initial: npt.ArrayLike | None = None,
     rng: np.random.Generator | int | None = None,
 ) -> Solution:
-    """Steepest-descent local search: flip the spin that most reduces energy.
+    """Local search: flip one improving spin at a time until none is left.
 
-    At each step, every spin's flip delta is checked and the single best one is
-    taken. When several spins tie for the best delta, one is chosen at random.
+    Every flip lowers the energy, so the search ends in a single-flip local
+    minimum. The rules differ only in which improving spin is flipped next:
+
+    - `"steepest"`: the one that lowers the energy most; ties broken at random.
+    - `"random"`: any of them, each equally likely.
+    - `"first"`: the next one in a sweep over the spins.
 
     Args:
         problem: The problem to solve.
+        rule: `"steepest"`, `"random"` or `"first"`.
         initial: Starting spin configuration. A random state is drawn if not given.
         rng: Random generator or seed.
 
     Returns:
         A `Solution` with:
         - `problem_id`: fingerprint of `problem`.
-        - `solver`: `"steepest_descent"`.
+        - `solver`: `"local_search"`.
         - `spins`: the state found.
         - `energy`: its energy.
         - `elapsed_s`: wall-clock time the solve took, in seconds.
+        - `rule`: the rule used.
         - `flips`: spin index flipped at each step, in order.
         - `energy_trace`: energy after each flip, same length as `flips`.
     """
+    if rule not in _RULES:
+        raise ValueError(f"rule must be one of {_RULES}, got {rule!r}.")
+
     t0 = time.perf_counter()
     _rng = np.random.default_rng(rng)
     j, h, c, n = problem.j, problem.h, problem.c, problem.n
@@ -60,25 +72,40 @@ def steepest_descent(
     flips: list[int] = []
     energy_trace: list[float] = []
 
-    while True:
-        delta = spin_flip_energy_update(s, h_eff)
-        best = delta.min()
-        if best >= 0.0:
-            break
-        ties = np.flatnonzero(delta == best)
-        k = int(ties[0]) if ties.size == 1 else int(_rng.choice(ties))
+    def flip(k: int, delta: float) -> None:
+        nonlocal h_eff, curr_energy
         h_eff += spin_flip_effective_field_update(j, s, k)
         s[k] = -s[k]
-        curr_energy += best
+        curr_energy += delta
         flips.append(k)
         energy_trace.append(curr_energy)
 
+    if rule == "first":
+        improved = True
+        while improved:
+            improved = False
+            for k in _rng.permutation(n):
+                delta = spin_flip_energy_update(s, h_eff, i=int(k))
+                if delta < 0.0:
+                    flip(int(k), delta)
+                    improved = True
+    else:
+        while True:
+            delta = spin_flip_energy_update(s, h_eff)
+            improving = delta < 0.0
+            if not improving.any():
+                break
+            candidates = np.flatnonzero(delta == delta.min() if rule == "steepest" else improving)
+            k = int(candidates[0]) if candidates.size == 1 else int(_rng.choice(candidates))
+            flip(k, float(delta[k]))
+
     return Solution(
         problem_id=problem.fingerprint,
-        solver="steepest_descent",
+        solver="local_search",
         spins=s,
         energy=curr_energy,
         elapsed_s=time.perf_counter() - t0,
+        rule=rule,
         flips=np.array(flips, dtype=DEFAULT_INDEX_DTYPE),
         energy_trace=np.array(energy_trace, dtype=problem.dtype),
     )
